@@ -51,15 +51,7 @@ fi
 # KWS
 ##############################
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    steps/kws_build_indices_from_sausages.sh
+    steps/kws_build_indice_from_cn.sh
     steps/kws_search.sh
 fi
-
-# November/December: reasonable Kaldi/ESPNET ASR results, e.g wer_output_filter
-# January: timing information, running KWS system for E2E ASR + many fixes (e.g. semiring), analysis (where does the differences come from)
-# Feburary: k2 decoding
-# March: paper, intrinsic evaluation, extrinsic evaluation, MLE of scaling factor, new espnet's model
-# April: intrinsic eval of confidence measures
-# May: RNNT decoder, k2 lattice (MBR on k2's lattices), recall
-
 
