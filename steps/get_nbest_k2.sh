@@ -2,6 +2,10 @@
 # Copyright (c) 2021, Johns Hopkins University, Ruizhe Huang
 # License: Apache 2.0
 
+
+
+
+
 #!/bin/bash
 
 cd /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/
