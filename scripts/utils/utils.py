@@ -19,7 +19,7 @@ def get_files(pattern):
     return glob(pattern)
 
 
-def read_multiple_files(files, encoding, fn=lambda x: x.split()):
+def read_multiple_files(files, encoding, fn=lambda x: x):
     import fileinput as fi
 
     lines = []    

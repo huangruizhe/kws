@@ -31,7 +31,7 @@ log "$0 $*"
 . utils/parse_options.sh
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "Stage 0: Phrase mining (actually, lemmas) of ${order}-ngrams with frequency threshold=${freq_thres}"
+    log "Stage 0: PMI-based Phrase mining (actually, lemmas) of ${order}-ngrams with frequency threshold=${freq_thres}"
 
     cd /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1
     . ./path.sh
@@ -57,7 +57,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # Add fisher text (optional)
     # fisher_text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/local/lm/fisher/text1.gz"
-    # zcat $fisher_text | sed 's/^/uid /' > $workdir/fisher_text.txt
+    # # zcat $fisher_text | sed 's/^/uid /' > $workdir/fisher_text.txt
+    # zcat $fisher_text | awk '{print "line-"FNR" "$0}' > $workdir/fisher_text.txt
     # text+=("$workdir/fisher_text.txt")
 
     wc $(printf " %s" "${text[@]}")
@@ -71,3 +72,23 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "Done. Please check the output file above. You can make edits in it mannualy if needed."
 fi
 
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "Stage 0: TF-IDF-based unigram mining (actually, lemmas) of ${order}-ngrams"
+
+    # This is the trascript file in the kaldi asr directory
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train/text"
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train_dev/text"
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_dev/text"
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_eval/text"
+    workdir="workdir"
+
+    mkdir -p $workdir
+
+    python scripts/query_gen/get_collocation.py \
+        -i $text \
+        -w $workdir \
+        -n 1
+
+    log "Done. Please check the output file above. You can make edits in it mannualy if needed."
+fi
