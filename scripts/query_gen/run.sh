@@ -33,6 +33,13 @@ log "$0 $*"
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "Stage 0: Phrase mining (actually, lemmas) of ${order}-ngrams with frequency threshold=${freq_thres}"
 
+    cd /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1
+    . ./path.sh
+    . ./cmd.sh
+
+    cd /export/fs04/a12/rhuang/kws/kws-release
+    ln -s /export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/wsj/s5/utils .
+
     # You'd better use as large corpus as possible.
     # This can come from multiple transcript files
 
