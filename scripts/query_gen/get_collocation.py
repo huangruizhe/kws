@@ -24,7 +24,7 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 # print(parent)
 import utils.utils as utils
-from query_gen.get_df import get_df, get_tf
+from scripts.query_gen.get_dfidf import get_df, get_tf
 
 
 logging.basicConfig(
@@ -69,11 +69,12 @@ def test():
     print(set(finder.ngram_fd))
 
 
-def lemmatize(lines, start_index=0):
+def lemmatize(lines, start_index=0, show_progress=True):
     wordnet_lemmatizer = WordNetLemmatizer()
 
     lines_lemma = []
-    for line in tqdm(lines):
+    iter_obj = tqdm(lines) if show_progress else lines
+    for line in iter_obj:
         if len(line) == 0:
             continue
 
@@ -102,7 +103,8 @@ def get_candidate_stems(opts, encoding):
     freq_thres = opts.freq
 
     # word_pattern = re.compile("[\w\-\']+")
-    word_pattern = re.compile("^(?:(?:\w[\w\-\']*\w)|(\w))$")
+    # word_pattern = re.compile("^(?:(?:\w[\w\-\']*\w)|(\w))$")
+    word_pattern = re.compile("^(?:(?:\w[\w\-]*\w)|(\w))$")
 
     if order == 1:
         assert len(inputfiles) == 1
@@ -135,7 +137,7 @@ def get_candidate_stems(opts, encoding):
             # Filtering conditions
             if not word_pattern.match(w[0]):
                 continue
-            if len(w) <= 2:
+            if len(w[0]) <= 2:
                 continue
 
             w_tf = tf[w]

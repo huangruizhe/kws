@@ -28,7 +28,7 @@ def read_multiple_files(files, encoding, fn=lambda x: x):
         with fi.input(files=files) as fin:
             for line in fin:
                 if fin.isfirstline():
-                    logging.info(f'> Start to read {fin.filename()}')
+                    logging.info(f'Start to read {fin.filename()}')
                 pbar.update(len(line))
                 line = line.strip()
                 if len(line) == 0:

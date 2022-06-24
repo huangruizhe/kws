@@ -45,12 +45,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # This is the trascript file in the kaldi asr directory
     text=()
-    text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train/text")
-    text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train_dev/text")
+    # text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train/text")
+    # text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train_dev/text")
     text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_dev/text")
-    text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_eval/text")
+    # text+=("/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_eval/text")
     workdir="workdir"
-    order=2; freq_thres=2
+    order=2; freq_thres=1
     # order=3; freq_thres=2
 
     mkdir -p $workdir
@@ -70,12 +70,15 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         -n $order -f ${freq_thres}
 
     log "Done. Please check the output file above. You can make edits in it mannualy if needed."
+
+    head -647 $workdir/lemma_candidates.2.thres1.txt >> $workdir/lemma_candidates.std2006_dev.2.thres1.txt
 fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 0: TF-IDF-based unigram mining (actually, lemmas) of ${order}-ngrams"
+    log "Stage 1: TF-IDF-based unigram mining (actually, lemmas) of 1-ngrams"
 
+    # Choose one of the following:
     # This is the trascript file in the kaldi asr directory
     text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train/text"
     text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train_dev/text"
@@ -90,5 +93,36 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         -w $workdir \
         -n 1
 
-    log "Done. Please check the output file above. You can make edits in it mannualy if needed."
+    log "Done. Please check the output file above. You can mannually take top-k unigrams of the file."
 fi
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "Stage 2: Generate keyword queries for ${order}-ngrams"
+
+    workdir="workdir"
+
+    # std206_dev
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_dev/text"
+    dict="$workdir/lemma_candidates.std2006_dev.2.thres1.txt"
+    suffix="std2006_dev"
+    # std206_eval
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_eval/text"
+    dict=
+    suffix=""
+
+    order=2
+
+    python scripts/query_gen/get_queries.py \
+        -i $text \
+        -d $dict \
+        -w $workdir \
+        -n $order \
+        -s $suffix
+    
+    # merge queries of different orders
+fi 
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Stage 3: Adding zero-occurence keywords"
+
+fi 

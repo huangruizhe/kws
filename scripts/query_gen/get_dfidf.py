@@ -46,7 +46,7 @@ def get_df(lines, data_name, n):
     #    ['cca', 'abd'], 
     #  ...]
 
-    logging.info("Getting DF from file: %s" % data_name)
+    logging.info("Getting DF for data_name: %s" % data_name)
 
     get_doc_id = None
     if data_name == "eval2000":
