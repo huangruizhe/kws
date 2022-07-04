@@ -22,9 +22,9 @@ import re
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
-# print(parent)
+# print(sys.path)
 import utils.utils as utils
-from scripts.query_gen.get_dfidf import get_df, get_tf
+from query_gen.get_dfidf import get_df, get_tf
 
 
 logging.basicConfig(
@@ -118,10 +118,16 @@ def get_candidate_stems(opts, encoding):
         lines_lemma = [l.split() for l in lines_lemma]
 
         if opts.data_name is None:
-            if "std2006_dev" in filename or "std2006_eval" in filename:
-                opts.data_name = "std2006"
-            elif "callhome_dev" in filename or "callhome_eval" in filename or "callhome_train" in filename:
-                opts.data_name = "callhome"
+            if "std2006_dev" in filename:
+                opts.data_name = "std2006_dev"
+            elif "std2006_eval" in filename:
+                opts.data_name = "std2006_eval"
+            elif "callhome_dev" in filename:
+                opts.data_name = "callhome_dev"
+            elif "callhome_eval" in filename: 
+                opts.data_name = "callhome_eval"
+            elif "callhome_train" in filename:
+                opts.data_name = "callhome_train"
             elif "eval2000" in filename:
                 opts.data_name = "eval2000"
             elif "swbd" in filename:

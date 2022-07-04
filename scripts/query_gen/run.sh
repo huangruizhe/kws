@@ -84,6 +84,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train_dev/text"
     text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_dev/text"
     text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_eval/text"
+    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt"
     workdir="workdir"
 
     mkdir -p $workdir

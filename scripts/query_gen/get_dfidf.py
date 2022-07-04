@@ -49,13 +49,13 @@ def get_df(lines, data_name, n):
     logging.info("Getting DF for data_name: %s" % data_name)
 
     get_doc_id = None
-    if data_name == "eval2000":
+    if "eval2000" in data_name:
         get_doc_id = get_doc_id_eval2000
-    elif data_name == "std2006":
+    elif "std2006" in data_name:
         get_doc_id = get_doc_id_std2006
-    elif data_name == "callhome":
+    elif "callhome" in data_name:
         get_doc_id = get_doc_id_callhome
-    elif data_name == "swbd":
+    elif "swbd" in data_name:
         get_doc_id = get_doc_id_swbd
     else:
         logging.error("Dataset=%s is not implemented." % opts.dataset)
