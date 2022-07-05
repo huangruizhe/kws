@@ -42,7 +42,7 @@ def parse_opts():
     parser.add_argument('-n', '--order', type=int, help='')
     parser.add_argument('-f', '--freq', type=int, default=3, help='')
     parser.add_argument('--lang', type=str, default="english", help='')
-    parser.add_argument('--data_name', choices=['swbd', 'eval2000', 'std2006', 'callhome'], default=None, help='')
+    parser.add_argument('-d', '--data_name', default=None, help='')
 
     opts = parser.parse_args()
     return opts
@@ -102,6 +102,25 @@ def get_candidate_stems(opts, encoding):
     order = opts.order
     freq_thres = opts.freq
 
+    if opts.data_name is None:
+        filename = inputfiles[0]
+        if "std2006_dev" in filename:
+            opts.data_name = "std2006_dev"
+        elif "std2006_eval" in filename:
+            opts.data_name = "std2006_eval"
+        elif "callhome_dev" in filename:
+            opts.data_name = "callhome_dev"
+        elif "callhome_eval" in filename: 
+            opts.data_name = "callhome_eval"
+        elif "callhome_train" in filename:
+            opts.data_name = "callhome_train"
+        elif "eval2000" in filename:
+            opts.data_name = "eval2000"
+        elif "swbd" in filename:
+            opts.data_name = "swbd"
+        else:
+            pass
+
     # word_pattern = re.compile("[\w\-\']+")
     # word_pattern = re.compile("^(?:(?:\w[\w\-\']*\w)|(\w))$")
     word_pattern = re.compile("^(?:(?:\w[\w\-]*\w)|(\w))$")
@@ -116,24 +135,6 @@ def get_candidate_stems(opts, encoding):
         logging.info(f"Doing lemmatization ...")
         lines_lemma = lemmatize(lines, start_index=1)
         lines_lemma = [l.split() for l in lines_lemma]
-
-        if opts.data_name is None:
-            if "std2006_dev" in filename:
-                opts.data_name = "std2006_dev"
-            elif "std2006_eval" in filename:
-                opts.data_name = "std2006_eval"
-            elif "callhome_dev" in filename:
-                opts.data_name = "callhome_dev"
-            elif "callhome_eval" in filename: 
-                opts.data_name = "callhome_eval"
-            elif "callhome_train" in filename:
-                opts.data_name = "callhome_train"
-            elif "eval2000" in filename:
-                opts.data_name = "eval2000"
-            elif "swbd" in filename:
-                opts.data_name = "swbd"
-            else:
-                pass
         
         df = get_df(lines_lemma, opts.data_name, order)
         tf = get_tf(lines_lemma, opts.data_name, order)
@@ -225,7 +226,7 @@ def get_candidate_stems(opts, encoding):
         logging.info("Computing PMI ...")
         rs = finder.score_ngrams(measures.pmi)
     
-        outputfile = Path(workdir) / f"lemma_candidates.{order}.thres{freq_thres}.txt"
+        outputfile = Path(workdir) / f"lemma_candidates.{opts.data_name}.{order}.thres{freq_thres}.txt"
         utils.check_dir(outputfile.parent, create=True)
 
     logging.info(f"Saving to output file: {outputfile}")
