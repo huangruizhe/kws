@@ -76,7 +76,7 @@ def filter(text):
 
     # rewrite words to standardized form with the dict
     # (1) words starting with & are entity names
-    text = re.sub('[.,!?:&]', ' ', text)
+    text = re.sub('[.,!?:&%#\*/]+', ' ', text)
     text = " ".join([filter_dict.get(word, word) for word in text.strip().split()])
 
     # words beginning or ending with { or }
