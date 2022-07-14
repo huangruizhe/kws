@@ -328,3 +328,13 @@ bash run.sh --test_sets "$test_sets" \
     --stage 13 --stop_stage 13
 
 
+# decode with larger beam size
+pretrained="espnet/roshansh_asr_base_sp_conformer_swbd"
+test_set=
+bash run.sh --test_sets "$test_set" \
+    --skip_data_prep true --skip_train true \
+    --download_model $pretrained \
+    --stop_stage 12 \
+    --inference_config "conf/decode_asr_beam40.yaml"
+
+decode=exp/espnet/roshansh_asr_base_sp_conformer_swbd/decode_asr_beam40_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave/$data/
