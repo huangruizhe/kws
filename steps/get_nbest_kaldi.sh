@@ -84,3 +84,56 @@ for job_id in `seq 1 $nj`; do
 done
 
 echo $nj > $nbest_dir/num_jobs
+
+
+### local/exp-20210204.sh
+
+cd /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c
+fix_long_dur_script=/export/fs04/a12/rhuang/kws/kws/local/fix_long_dur.sh
+data=std2006_dev
+data=std2006_eval
+data=callhome_train
+data=callhome_dev
+data=callhome_eval
+montreal=
+montreal=".montreal"
+montreal=".ref"
+scale=1.0
+kaldi=
+kaldi="_kaldi"
+kaldi="_k2"
+dev=
+skip_optimization=true
+
+# kaldi nbest kws:
+kaldi_path=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
+nbest_dir=${kaldi_path}/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/
+indices_dir=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/kws_indices_kaldi/${data}_100/
+
+score_type=_pos
+for scale in 0.0 0.2 0.5 1.0; do
+    echo `date` "scale=$scale"
+
+    cd /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1
+    time bash $fix_long_dur_script --kaldi "$kaldi" --data $data --nbest-dir $nbest_dir --indices_dir $indices_dir --scale $scale --montreal "$montreal" --stage 0 --score_type "_pos"
+
+    time bash $fix_long_dur_script --kaldi "$kaldi" --data $data --nbest-dir $nbest_dir --indices_dir $indices_dir --scale $scale --montreal "$montreal" --stage 1 --skip_optimization "$skip_optimization" --score_type "_pos"
+    [[ -d $indices_dir/kws_indices_2_${scale}${montreal}_eps2 ]] && rm -r $indices_dir/kws_indices_2_${scale}${montreal}_eps2
+    mv $indices_dir/kws_indices $indices_dir/kws_indices_2_${scale}${montreal}_eps2; echo $indices_dir/kws_indices_2_${scale}${montreal}_eps2
+    ls -lah $indices_dir/kws_indices_2_${scale}${montreal}_eps2/index.1.gz
+done
+
+# Step 1. run normal kws: you can terminate the program after *.fsts are generated
+cd /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c
+bash $fix_long_dur_script --kaldi "$kaldi" --data $data --nbest-dir $nbest_dir --indices_dir $indices_dir --scale $scale --montreal "$montreal" --stage 3 --skip_kw_fst false --eps2_suffix ""
+# Step 2. generate new *.fsts
+fsts=data/${data}/kws/keywords.fsts
+wc -l $fsts
+mv $fsts ${fsts%.*}.original.fsts
+wc -l ${fsts%.*}.original.fsts
+# strange: it will only be succesful after the 2nd run
+bash $fix_long_dur_script --kaldi "$kaldi" --data $data --nbest-dir $nbest_dir --indices_dir $indices_dir --scale $scale --montreal "$montreal" --stage 2 --fst ${fsts%.*}.original.fsts
+ln -sf $(realpath ${fsts%.*}.original.eps2.fsts) $fsts
+# Step 3. run eps2 kws to get atwv/mtwv/otwv/stwv
+bash $fix_long_dur_script --kaldi "$kaldi" --data $data --nbest-dir $nbest_dir --indices_dir $indices_dir --scale $scale --montreal "$montreal" --stage 3  --max_distance_range "25 50 500"
+

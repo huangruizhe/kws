@@ -18,6 +18,9 @@ fi
 # Generate nbest list and get the nbest directory structure
 ############################################################
 if [ ${stage} -le -10 ] && [ ${stop_stage} -ge -10 ]; then
+    steps/decode_kaldi.sh
+    steps/decode_espnet.sh
+
     steps/get_nbest_kaldi.sh
     steps/get_nbest_espnet.sh
     steps/get_nbest_k2.sh
