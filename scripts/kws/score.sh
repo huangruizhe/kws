@@ -95,7 +95,9 @@ fi
 mv ${kwsoutputdir}/details ${kwsoutputdir}/details_${max_distance}
 mv ${kwsoutputdir}/scoring ${kwsoutputdir}/scoring_${max_distance}
 
-cat ${kwsoutputdir}/details_${max_distance}/score.txt
+echo max_distance=$max_distance ntrue_raw=$(cat ${kwsoutputdir}/details_${max_distance}/ntrue_raw)
+readarray -t results < <(cat ${kwsoutputdir}/details_${max_distance}/score.txt | rev | cut -d' ' -f1 | rev); 
+echo ${results[0]}/${results[2]}/${results[4]}/${results[1]}
 
 echo "$0: Done: ${kwsoutputdir}/details_${max_distance}"
 exit 0;

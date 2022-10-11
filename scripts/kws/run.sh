@@ -42,7 +42,12 @@ decode=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_$
 steps/get_ctm_conf.sh data/std2006_dev data/lang $decode
 
 # use ntrue from dev for eval
-# TODO
+dev_dir=
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir \
+ --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+ --ntrue_from $dev_dir
+ --max_distance 50
 
 # How to replicate this result:
 # /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_std2006_dev_sw1_fsh_fg_rnnlm_1e_0.45/kws_2_50_kaldi_1.0_eps2/details/score.txt
