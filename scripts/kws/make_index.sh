@@ -10,7 +10,7 @@
 lats_dir=
 kws_data_dir=
 indices_tag=""
-cmd=queue.pl
+cmd=run.pl
 stage=
 
 max_states_scale=-1
@@ -109,3 +109,15 @@ fi
 #  --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir \
 #  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir \
 #  --stage 1
+
+# bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/search.sh \
+#  --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir \
+#  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir \
+#  --kwlist /export/fs04/a12/rhuang/kws/kws/data0/std2006_eval/kws/keywords.txt \
+#  --stage 2
+  
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
+  --data std2006_dev
+  --keywords /export/fs04/a12/rhuang/kws/kws/data0/std2006_dev/kws/keywords.std2006_dev.txt 
+  --create_catetories "false"
+  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2
