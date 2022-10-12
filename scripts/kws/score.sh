@@ -9,7 +9,7 @@ kws_data_dir=
 indices_tag=""
 cmd=run.pl
 stage=0
-ntrue_from=    # It should be an $kws_outputdir
+ntrue_from=    # It should be an $kws_outputdir/details
 max_distance=50
 sweep_step=0.005
 # End configuration section.
@@ -63,9 +63,9 @@ if [ $stage -le 0 ] ; then
     mkdir -p ${kwsoutputdir}/details/
     mkdir -p ${kwsoutputdir}/scoring/
 
-    cp ${ntrue_from}/details/ntrue  ${kwsoutputdir}/details/ntrue
-    [ -f  ${ntrue_from}/details/ntrue_raw ] && \
-      cp ${ntrue_from}/details/ntrue_raw  ${kwsoutputdir}/details/ntrue_raw
+    cp ${ntrue_from}/ntrue  ${kwsoutputdir}/details/ntrue
+    [ -f  ${ntrue_from}/ntrue_raw ] && \
+      cp ${ntrue_from}/ntrue_raw  ${kwsoutputdir}/details/ntrue_raw
     echo "$ntrue_from" > ${kwsoutputdir}/details/ntrue_from
   fi
 fi

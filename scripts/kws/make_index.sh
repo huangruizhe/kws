@@ -46,21 +46,22 @@ log nj: "$nj"
 if [[ ${stage} == 0 ]]; then
     log "Converting <eps> to <eps2> in clat..."
 
-    if [[ ! -d $lats_dir/clat_backup ]]; then
-        mkdir $lats_dir/clat_backup
-        find $lats_dir -name 'clat.*.gz' ! -name 'clat.*.eps2.gz' | xargs mv -t $lats_dir/clat_backup/
-        # mv $lats_dir/clat.*.gz $lats_dir/clat_backup/.
-    else 
-        log "Using clats in existing $lats_dir/clat_backup/"
-    fi
+    # if [[ ! -d $lats_dir/clat_backup ]]; then
+    #     mkdir $lats_dir/clat_backup
+    #     find $lats_dir -name 'clat.*.gz' ! -name 'clat.*.eps2.gz' | xargs mv -t $lats_dir/clat_backup/
+    #     # mv $lats_dir/clat.*.gz $lats_dir/clat_backup/.
+    # else 
+    #     log "Using clats in existing $lats_dir/clat_backup/"
+    # fi
+    mkdir -p ${lats_dir}/clat_eps2/
 
     $cmd JOB=1:$nj $lats_dir/log/convert_eps2.JOB.log \
         set -e -o pipefail '&&' \
-        zcat $lats_dir/clat_backup/clat.JOB.gz \| \
+        zcat $lats_dir/clat/clat.JOB.gz \| \
         awk "BEGIN{FS=OFS=\" \";}{if (\$3 == \"<eps>\") \$3=\"<eps2>\"; print};" \| \
-        gzip \> $lats_dir/clat.JOB.eps2.gz
+        gzip \> $lats_dir/clat_eps2/clat.JOB.eps2.gz
     
-    log Done: `ls -lah $lats_dir/clat.1.eps2.gz`
+    log Done: `ls -lah $lats_dir/clat_eps2/clat.1.eps2.gz`
 fi
 
 if [[ ${stage} == 1 ]]; then
@@ -75,7 +76,7 @@ if [[ ${stage} == 1 ]]; then
     # verbose="--verbose=1"
     $cmd JOB=1:$nj $indices_dir/log/kws_index.JOB.log \
         set -e -o pipefail '&&' \
-        zcat $lats_dir/clat.JOB.eps2.gz \| \
+        zcat $lats_dir/clat_eps2/clat.JOB.eps2.gz \| \
             utils/sym2int.pl --map-oov \\\<unk\\\> -f 3 $words \| \
             lattice-determinize ark:- ark:- \| \
             lattice-to-kws-index --max-states-scale=${max_states_scale} --allow-partial=true \

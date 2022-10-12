@@ -11,6 +11,7 @@
 cmd=queue.pl
 
 data=std2006_dev
+data=std2006_eval
 kws_exp=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/
 nbest_dir=${kws_exp}/nbest_kaldi/
 n=100
@@ -38,7 +39,8 @@ nj=`cat ${decode_dir}/num_jobs`
 echo $nj
 
 outputdir=${decode_dir}/nbest/
-rm -rf $outputdir
+outputdir=${decode_dir}/nbest2/
+# rm -rf $outputdir
 mkdir -p $outputdir
 $cmd JOB=1:$nj $outputdir/log/lat2nbest.JOB.log \
     lattice-to-nbest --acoustic-scale=$acwt --n=$n \

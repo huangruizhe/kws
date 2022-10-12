@@ -60,7 +60,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     echo "Using aligment: `wc $ali`" 
 
-    mkdir -p ${lats_dir}
+    mkdir -p ${lats_dir}/clat/
 
     # script=/export/fs04/a12/rhuang/kws/kws/local/rover5.py
     script=/export/fs04/a12/rhuang/kws/kws/local/rover6.py
@@ -73,11 +73,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
           --ali $ali \
           --scale $scale \
           --nsize $nsize $other_opts \| \
-         $compressor \> ${lats_dir}/clat.JOB.gz || exit 1; 
+         $compressor \> ${lats_dir}/clat/clat.JOB.gz || exit 1; 
 
     grep -iF "error" ${lats_dir}/log/nbest2lat.*.log
     grep -iF "warning" ${lats_dir}/log/nbest2lat.*.log
-    echo "Done: `ls -lah ${lats_dir}/clat.1.gz`"
+    echo "Done: `ls -lah ${lats_dir}/clat/clat.1.gz`"
 fi
 
 exit 0;

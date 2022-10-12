@@ -10,7 +10,6 @@ create_catetories="true"
 flen=0.01
 kws_data_dir=
 
-data_dir=data/$data
 lang=data/lang
 
 . ./utils/parse_options.sh
@@ -25,7 +24,16 @@ log() {
   echo -e "$(date '+%Y-%m-%d %H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
+data_dir=data/$data
 [[ -z "$kws_data_dir" ]] && kws_data_dir=data/$data/kws/
+
+echo "------------------ Parameters ------------------"
+echo data: $data
+echo keywords: $keywords
+echo kws_data_dir: $kws_data_dir
+echo create_catetories: $create_catetories
+echo data_dir: $data_dir
+echo "------------------------------------------------"
 
 mkdir -p $kws_data_dir
 if [ $stage -le 1 ] ; then
