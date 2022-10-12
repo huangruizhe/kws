@@ -52,3 +52,17 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
 # How to replicate this result:
 # /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_std2006_dev_sw1_fsh_fg_rnnlm_1e_0.45/kws_2_50_kaldi_1.0_eps2/details/score.txt
 # https://docs.google.com/spreadsheets/d/1Hd5kXimgxZSbueveNT9dc3grL_B7fxsSL-aAMqD49wk/edit#gid=570879841
+
+# Let me replicate this result: kaldi's 50-best kws
+
+
+/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_std2006_eval_sw1_fsh_fg_rnnlm_1e_0.45/kws_2_50_kaldi_1.0_eps2/details/score.txt
+
+
+/export/fs04/a12/rhuang/kws/kws-release/steps/get_nbest_kaldi.sh
+
+data=std2006_dev
+bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_time_kaldi.sh \
+ --data $data \
+ --nbest_dir /export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
+
