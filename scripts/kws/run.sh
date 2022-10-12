@@ -19,20 +19,23 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
   --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2
 
 # stage 0 1
+tag="_${scale}_${nsize}"
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/make_index.sh \
- --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir${tag} \
  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+ --frame_subsampling_factor 1 \
  --stage 0
   
 # stage 3 4
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/search.sh \
- --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir${tag} \
  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+ --frame_subsampling_factor 1 \
  --stage 3
 
 # max_distance 50 100 500
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
- --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir${tag} \
  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
  --max_distance 50
 
@@ -59,10 +62,54 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
 /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_std2006_eval_sw1_fsh_fg_rnnlm_1e_0.45/kws_2_50_kaldi_1.0_eps2/details/score.txt
 
 
+# get nbest from kaldi's decode directory
 /export/fs04/a12/rhuang/kws/kws-release/steps/get_nbest_kaldi.sh
 
+# get timing for the nbest
 data=std2006_dev
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_time_kaldi.sh \
  --data $data \
  --nbest_dir /export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
 
+# get confidence scores for nbest
+# TODO
+
+# get clats from nbest
+data=std2006_dev
+scale=1.0
+nsize=50
+bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_confusion_network.sh \
+  --nsize $nsize \
+  --nbest_dir /export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/ \
+  --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_${scale}_${nsize} \
+  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+  --ali /export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/timing/1best.ali_kaldi.txt \
+  --score_type "_pos" \
+  --scale $scale
+
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
+  --data std2006_dev \
+  --keywords /export/fs04/a12/rhuang/kws/kws/data0/std2006_dev/kws/keywords.std2006_dev.txt \
+  --create_catetories "false" \
+  --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2
+
+# stage 0 1
+tag="_${scale}_${nsize}"
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/make_index.sh \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir${tag} \
+ --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+ --frame_subsampling_factor 1 \
+ --stage 0
+  
+# stage 3 4
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/search.sh \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir${tag} \
+ --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+ --frame_subsampling_factor 1 \
+ --stage 3
+
+# max_distance 50 100 500
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
+ --lats_dir /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir${tag} \
+ --kws_data_dir /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir2 \
+ --max_distance 50

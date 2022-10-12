@@ -45,6 +45,7 @@ if [ $stage -le 1 ] ; then
 
   [ ! -f $data_dir/utt2dur ] &&
     utils/data/get_utt2dur.sh $data_dir
+  cp $data_dir/utt2dur $kws_data_dir/utt2dur
 
   duration=$(cat $data_dir/utt2dur | awk '{sum += $2} END{print sum}' )
 

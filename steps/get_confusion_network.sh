@@ -1,6 +1,87 @@
 #!/bin/bash
-# Copyright (c) 2021, Johns Hopkins University, Ruizhe Huang
+# Copyright (c) 2022, Johns Hopkins University, Ruizhe Huang
 # License: Apache 2.0
+
+# Ref:
+# /export/fs04/a12/rhuang/kws/kws/local/exp-20220720.sh
+# /export/fs04/a12/rhuang/kws/kws/local/get_clats.sh
+
+# begin configuration section.
+cmd=run.pl
+scale=1.0
+stage=0
+stop_stage=10000
+nj=
+
+max_states_scale=-1
+max_states=1000000
+skip_optimization=false
+
+score_type=
+nsize=
+
+nbest_dir=
+lats_dir=
+kws_data_dir=
+ali=
+#end configuration section.
+
+# [ -f ./path.sh ] && . ./path.sh
+[ -f ./path.sh ] && . ./path.sh
+. parse_options.sh || exit 1;
+
+
+echo "------------------ Parameters ------------------"
+echo nbest_dir: $nbest_dir
+echo lats_dir: $lats_dir
+echo kws_data_dir: $kws_data_dir
+echo ali: $ali
+echo score_type: $score_type
+echo scale: $scale
+echo nsize: $nsize
+echo "------------------------------------------------"
+
+[[ -z "$nj" ]] && [[ -f $nbest_dir/num_jobs ]] && nj=`cat $nbest_dir/num_jobs`
+mkdir -p $lats_dir
+echo $nj > $lats_dir/num_jobs
+
+
+##############################
+# Convert nbest to sausage
+##############################
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    echo "Stage 0: Convert nbest to lattice"
+
+    compressor=gzip
+    # compressor=cat
+
+    utt2dur=$kws_data_dir/utt2dur
+    words=$kws_data_dir/words.txt
+
+    echo "Using aligment: `wc $ali`" 
+
+    mkdir -p ${lats_dir}
+
+    # script=/export/fs04/a12/rhuang/kws/kws/local/rover5.py
+    script=/export/fs04/a12/rhuang/kws/kws/local/rover6.py
+    $cmd JOB=1:$nj ${lats_dir}/log/nbest2lat.JOB.log \
+        /export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python3 \
+          $script --workdir ${nbest_dir}/nbest/JOB/ \
+          --score_type $score_type \
+          --dur $utt2dur \
+          --words $words \
+          --ali $ali \
+          --scale $scale \
+          --nsize $nsize $other_opts \| \
+         $compressor \> ${lats_dir}/clat.JOB.gz || exit 1; 
+
+    grep -iF "error" ${lats_dir}/log/nbest2lat.*.log
+    grep -iF "warning" ${lats_dir}/log/nbest2lat.*.log
+    echo "Done: `ls -lah ${lats_dir}/clat.1.gz`"
+fi
+
+exit 0;
+
 
 cd /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1
 conda activate espnet_gpu

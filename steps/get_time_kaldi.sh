@@ -86,8 +86,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         \> ${dir}/1best.ali.txt
     
     mkdir -p ${nbest_dir}/timing
-    cp ${dir}/1best.ali.txt ${nbest_dir}/timing/1best.ali.txt
-    echo "Done: `wc ${nbest_dir}/timing/1best.ali.txt`"
+    cp ${dir}/1best.ali.txt ${nbest_dir}/timing/1best.ali_kaldi.txt
+    echo "Done: `wc ${nbest_dir}/timing/1best.ali_kaldi.txt`"
 fi
 
 exit 0;
