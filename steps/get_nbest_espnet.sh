@@ -83,6 +83,7 @@ fi
 
 ################################################
 # Decode the nbest list from espnet's model
+# Also check out: /export/fs04/a12/rhuang/kws/kws/run_espnet.sh
 ################################################
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # make sure that in "espnet2/bin/asr_inference.py" the "token_list" is correct
@@ -114,6 +115,74 @@ fi
 ################################################
 # Convert ESPNet's nbest format to our format
 ################################################
+
+espnet_decode_dir=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/exp/espnet/roshansh_asr_base_sp_conformer_swbd/decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_stochastic0.8/$data/
+espnet_decode_dir=$decode
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+
+    mkdir -p $nbest_dir
+    find $espnet_decode_dir/logdir/ -maxdepth 1 -type d -regextype egrep -regex '.*/output.[0-9]+' | wc -l > $nbest_dir/num_jobs
+    nj=`cat $nbest_dir/num_jobs`
+    echo nj: $nj
+
+    for job_id in `seq 1 $nj`; do 
+        nbest=`ls -d1 $espnet_decode_dir/logdir/output.${job_id}/*best_recog | wc -l`
+        mkdir -p $nbest_dir/nbest/${job_id}/
+        if [[ ! -f $nbest_dir/nbest/${job_id}/nbest.txt ]]; then
+            (
+                for ibest in `seq 1 $nbest`; do 
+                    [ -f $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/text ] \
+                    && join -j 1 \
+                        <(cut -d' ' -f1,2 $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/score) \
+                        $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/text
+                done;
+            ) | \
+            sort -s -k1,1 | \
+            awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
+            > $nbest_dir/nbest/${job_id}/nbest.txt
+            echo "Done: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+        else
+            echo "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+        fi
+    done    
+
+    for job_id in `seq 1 $nj`; do 
+        cut -d' ' -f1 $nbest_dir/nbest/$job_id/nbest.txt | sort -u > $nbest_dir/nbest/$job_id/utt
+        # wc -l $nbest_dir/temp/$job_id/utt
+    done
+fi
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    # Obtain word-level confidence scores from token-level scores
+    length_bonus=0.1
+    func=/export/fs04/a12/rhuang/kws/kws-release/scripts/nbest2kws_indices_func.sh
+    # cmd=run.pl   # Using run.pl will save some job scheduling time than queue.pl
+    cmd=queue.pl
+    # score_type="ac"  # ['all', 'att', 'ctc', 'lm', 'ac', "all-lb"]
+
+    [[ -z "$nj" ]] && [[ -f $nbest_dir/num_jobs ]] && nj=`cat $nbest_dir/num_jobs`
+    mkdir -p $nbest_dir/scores/
+    for score_type in 'lm' 'ac' "all-lb" 'all' 'att' 'ctc'; do
+        echo "score_type:" $score_type
+        echo "log path:" $nbest_dir/log/wscores.$score_type.1.log
+        time $cmd JOB=1:$nj $nbest_dir/log/wscores.$score_type.JOB.log \
+            set -e -o pipefail '&&' \
+            mkdir -p $nbest_dir/scores/JOB/ '&&' \
+            bash $func get_w_scores JOB $length_bonus $espnet_decode_dir $score_type &
+        # grep -iF error $indices_dir/log/wscores.*.log
+    done
+
+    # some sanity checks
+    for f in $nbest_dir/logdir/output.28/*best_recog/; do 
+        num1=$(wc -l "$f/text" | cut -d' ' -f1)
+        num2=$(wc -l "$f/word_score_${score_type}" | cut -d' ' -f1)
+        if [[ $num1 -ne $num2 ]]; then
+            wc -l "$f/{text,word_score_${score_type}}"
+        fi
+    done
+fi
+
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # First, Obtain word-level confidence scores from token-level scores

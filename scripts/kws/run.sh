@@ -69,6 +69,7 @@ data=std2006_dev
 data=std2006_eval
 
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
+nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_espnet0.8/
 kws_data_dir=/export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_$data
 keywords=/export/fs04/a12/rhuang/kws/kws/data0/$data/kws/keywords.$data.txt
 scale=1.0
@@ -78,21 +79,27 @@ lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_$data_${scale}_${
 
 # get nbest from kaldi's decode directory
 /export/fs04/a12/rhuang/kws/kws-release/steps/get_nbest_kaldi.sh
+# OR, get nbest from espnet's decode directory (step 0, 1)
+/export/fs04/a12/rhuang/kws/kws-release/steps/get_nbest_espnet.sh
 
 # get timing for the nbest
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_time_kaldi.sh \
  --data $data \
- --nbest_dir $nbest_dir
+ --nbest_dir $nbest_dir \
+ --tag "espnet0.95"
 
 # get confidence scores for nbest
 # TODO
 
 # prep kws dir
+kaldi_path=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
+cd $kaldi_path
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
   --data $data \
   --keywords $keywords \
   --create_catetories "false" \
   --kws_data_dir $kws_data_dir
+cd -
 
 # get clats from nbest
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_confusion_network.sh \
@@ -100,7 +107,7 @@ bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_confusion_network.sh \
   --nbest_dir $nbest_dir \
   --lats_dir $lats_dir \
   --kws_data_dir $kws_data_dir \
-  --ali /export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/timing/1best.ali_kaldi.txt \
+  --ali ${nbest_dir}/timing/1best.ali_kaldi.txt \
   --score_type "_pos" \
   --scale $scale
 
@@ -112,17 +119,21 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/make_index.sh \
  --stage 0
   
 # stage 3 4
+cd $kaldi_path
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/search.sh \
  --lats_dir $lats_dir \
  --kws_data_dir $kws_data_dir \
  --frame_subsampling_factor 1 \
  --stage 3
+cd -
 
 # max_distance 50 100 500
+cd $kaldi_path
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
  --lats_dir $lats_dir \
  --kws_data_dir $kws_data_dir \
  --max_distance 50
+cd -
 
  # use ntrue from dev for eval
 dev_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir/kws_indices/kws_results/details_50/

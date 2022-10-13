@@ -10,7 +10,8 @@ create_catetories="true"
 flen=0.01
 kws_data_dir=
 
-lang=data/lang
+kaldi_path=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
+lang=${kaldi_path}/data/lang
 
 . ./utils/parse_options.sh
 . ./path.sh
@@ -24,7 +25,7 @@ log() {
   echo -e "$(date '+%Y-%m-%d %H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-data_dir=data/$data
+data_dir=${kaldi_path}/data/$data
 [[ -z "$kws_data_dir" ]] && kws_data_dir=data/$data/kws/
 
 echo "------------------ Parameters ------------------"
@@ -71,17 +72,17 @@ if [ $stage -le 1 ] ; then
   cp $keywords $kws_data_dir/keywords.txt
   map_oov=`awk 'BEGIN{a=0}{if ($2>0+a) a=$2} END{print a+10000}' $kws_data_dir/words.txt`
   cat $kws_data_dir/keywords.txt | \
-    local/kws/keywords_to_indices.pl --map-oov $map_oov  $kws_data_dir/words.txt | \
+    ${kaldi_path}/local/kws/keywords_to_indices.pl --map-oov $map_oov  $kws_data_dir/words.txt | \
     sort -u > $kws_data_dir/keywords.int
   echo "# of keyword queries: $(wc -l $kws_data_dir/keywords.txt | awk '{print $1}')"
 
   cat $kws_data_dir/keywords.txt | \
-    local/kws/keywords_to_oov.pl --map-oov $map_oov  $kws_data_dir/words.txt | \
+    ${kaldi_path}/local/kws/keywords_to_oov.pl --map-oov $map_oov  $kws_data_dir/words.txt | \
     sort -u > $kws_data_dir/keywords.oovs
 
   # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5d/local/kws_setup.sh
   if [[ $create_catetories == "true" ]]; then 
-    cat $kws_data_dir/keywords.txt | local/search/create_categories.pl | local/search/normalize_categories.pl > $kws_data_dir/categories
+    cat $kws_data_dir/keywords.txt | ${kaldi_path}/local/search/create_categories.pl | ${kaldi_path}/local/search/normalize_categories.pl > $kws_data_dir/categories
   elif [[ -f $kws_data_dir/categories ]]; then
     mv $kws_data_dir/categories $kws_data_dir/categories.backup
   fi
@@ -102,8 +103,8 @@ if [ $stage -le 2 ] ; then
   # steps/align_fmllr.sh --nj 5 --cmd "$cmd" \
   #    $data_dir $lang exp/tri3 exp/tri3b_ali_$data
 
-  local/kws/create_hitlist.sh $data_dir $lang data/local/lang \
-    exp/tri3b_ali_$data $kws_data_dir
+  ${kaldi_path}/local/kws/create_hitlist.sh $data_dir $lang ${kaldi_path}/data/local/lang \
+    ${kaldi_path}/exp/tri3b_ali_$data $kws_data_dir
 fi
 
 if [ $stage -le 3 ] ; then
@@ -123,7 +124,7 @@ if [ $stage -le 3 ] ; then
     #     sort -u > $kwsoutput/keywords.int
     
     # generate keywords.fsts
-    local/kws/compile_keywords.sh $kws_data_dir $(dir $words) $kws_data_dir/tmp.2
+    ${kaldi_path}/local/kws/compile_keywords.sh $kws_data_dir $(dir $words) $kws_data_dir/tmp.2
     cp $kws_data_dir/tmp.2/keywords.fsts $kws_data_dir/keywords.fsts
 
     # convert keywords.fsts to keywords.eps2.fsts
@@ -134,5 +135,5 @@ if [ $stage -le 3 ] ; then
       > $kws_data_dir/keywords.eps2.fsts
     
     wc -l $kws_data_dir/keywords.fsts $kws_data_dir/keywords.eps2.fsts
-    log "Done: $kws_data_dir/keywords.eps2.fsts"
+    log "Done: `wc $kws_data_dir/keywords.eps2.fsts`"
 fi 
