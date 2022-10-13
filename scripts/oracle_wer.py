@@ -66,16 +66,19 @@ def nbest_distribution(opts):
                 else:
                     sent = ""
                 
+                if uid_nbest_count[uid] >= opts.n:
+                    continue
                 uid_nbest_count[uid] += 1
     
     counts = Counter(uid_nbest_count.values())
-    print(opts.nbest)
-    print(sorted(counts.items()))
-    print(f"mean: {statistics.mean(uid_nbest_count.values())}")
-    print(f"mode: {statistics.mode(uid_nbest_count.values())}")
-    print(f"stdev: {statistics.stdev(uid_nbest_count.values())}")
-    print(f"min: {min(uid_nbest_count.values())}")
-    print(f"max: {max(uid_nbest_count.values())}")
+    logging.info(opts.nbest)
+    logging.info(f"size of n-best: {opts.n}")
+    logging.info(sorted(counts.items()))
+    logging.info(f"mean: {statistics.mean(uid_nbest_count.values())}")
+    logging.info(f"mode: {statistics.mode(uid_nbest_count.values())}")
+    logging.info(f"stdev: {statistics.stdev(uid_nbest_count.values())}")
+    logging.info(f"min: {min(uid_nbest_count.values())}")
+    logging.info(f"max: {max(uid_nbest_count.values())}")
 
     return counts
 
@@ -85,6 +88,7 @@ def number_of_distinct_words(opts, apply_filter=False):
     logging.info("There are %d files" % len(files))
 
     uid_words = defaultdict(set)
+    uid_cnt = defaultdict(int)
     for f in files:
         with open(f, "r") as fin:
             for line in fin:
@@ -96,6 +100,11 @@ def number_of_distinct_words(opts, apply_filter=False):
                 uid = line[0]
                 # uid = uid[:uid.rindex("-")]
                 score = float(line[1])
+
+                uid_cnt[uid] += 1
+                if uid_cnt[uid] > opts.n:
+                    continue
+
                 if len(line) > 2:
                     sent = line[2]
                     if apply_filter:
@@ -220,6 +229,17 @@ def get_oracle_wer(opts):
     return utt2csid_list, utt2wer, utt2oracle_wer, uid_nbest_count
 
 
+def get_precision_recall(opts):
+    sow = set_of_words(opts, apply_filter=True)
+    logging.info(f"len(bow) = {len(sow)}")
+    
+    precisions = [stat[0] for uid, stat in sow.items() if stat[0] is not None]
+    recalls = [stat[1] for uid, stat in sow.items() if stat[1] is not None]
+    logging.info(f"len(precisions) = {len(precisions)}, len(recalls) = {len(recalls)}")
+    logging.info(f"precision: mean={statistics.mean(precisions)}, mode={statistics.mode(precisions)}, var={statistics.variance(precisions)}, min={min(precisions)}, max={max(precisions)}")
+    logging.info(f"recall: mean={statistics.mean(recalls)}, mode={statistics.mode(recalls)}, var={statistics.variance(recalls)}, min={min(recalls)}, max={max(recalls)}")
+
+
 def convert_kaldi_nbest(opts):
     files = glob(opts.nbest)
     logging.info("There are %d files" % len(files))  # should be one. We work on the merged file directly
@@ -260,6 +280,8 @@ def main(opts):
         nbest_distribution(opts)
     if opts.oracle_wer:
         get_oracle_wer(opts)
+        get_precision_recall(opts)
+        nbest_distribution(opts)
     if opts.convert_kaldi:
         convert_kaldi_nbest(opts)
 

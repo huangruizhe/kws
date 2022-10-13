@@ -30,7 +30,7 @@ log() {
 [[ -z "$nj" ]] && [[ -f $nbest_dir/num_jobs ]] && nj=`cat $nbest_dir/num_jobs`
 
 log "------------------ Parameters ------------------"
-log ref: $data
+log ref: $ref
 log nbest_dir: $nbest_dir
 log nsize: $nsize
 log nj: $nj
@@ -105,5 +105,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     $py $script --oracle_wer \
         --text $ref \
         --per_utt ${nbest_dir}/temp/'*'/scoring_kaldi/wer_details/per_utt \
-        --n $nsize
+        --n $nsize \
+        --nbest ${nbest_dir}/nbest/'*'/nbest.txt
 fi

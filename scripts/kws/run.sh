@@ -151,7 +151,14 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
 
 
 # oracle WER
+data=callhome_dev
+nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_topk/
+nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_espnet1.0
+nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
+nsize=50
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/oracle_wer.sh \
   --ref /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt \
   --nbest_dir $nbest_dir \
-  --nsize $nsize  
+  --nsize $nsize  \
+  --stage 2
+
