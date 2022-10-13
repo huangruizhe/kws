@@ -108,7 +108,7 @@ if [ $stage -le 2 ] ; then
 fi
 
 if [ $stage -le 3 ] ; then
-    echo "Stage 3: Generate *.eps2.fsts for the keywords"
+    log "Stage 3: Generate *.eps2.fsts for the keywords"
     
     words=$kws_data_dir/words.eps2.txt
     cp $kws_data_dir/words.txt $words

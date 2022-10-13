@@ -71,10 +71,11 @@ data=std2006_eval
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_espnet0.8/
 kws_data_dir=/export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_$data
-keywords=/export/fs04/a12/rhuang/kws/kws/data0/$data/kws/keywords.$data.txt
+keywords=/export/fs04/a12/rhuang/kws/kws/data0/$data/kws/keywords.$data.txt     # std2006
+keywords=/export/fs04/a12/rhuang/kws/kws/data/${data}/kws/queries/keywords.txt  # callhome
 scale=1.0
 nsize=50
-lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_$data_${scale}_${nsize}
+lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_${data}_${scale}_${nsize}
 
 
 # get nbest from kaldi's decode directory
@@ -86,7 +87,7 @@ lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_$data_${scale}_${
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_time_kaldi.sh \
  --data $data \
  --nbest_dir $nbest_dir \
- --tag "espnet0.95"
+ --tag "espnet1.2"
 
 # get confidence scores for nbest
 # TODO
@@ -135,10 +136,22 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
  --max_distance 50
 cd -
 
- # use ntrue from dev for eval
+# check scores:
+f=$lats_dir//kws_indices/kws_results/details_50/score.txt
+# cat $f
+readarray -t results < <(cat $f | rev | cut -d' ' -f1 | rev); echo ${results[0]}/${results[2]}/${results[4]}/${results[1]}
+
+# use ntrue from dev for eval
 dev_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir/kws_indices/kws_results/details_50/
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
  --lats_dir $lats_dir \
  --kws_data_dir $kws_data_dir \
  --ntrue_from $dev_dir
  --max_distance 50
+
+
+# oracle WER
+bash /export/fs04/a12/rhuang/kws/kws-release/scripts/oracle_wer.sh \
+  --ref /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt \
+  --nbest_dir $nbest_dir \
+  --nsize $nsize  

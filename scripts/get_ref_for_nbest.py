@@ -1,9 +1,9 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import logging
 import argparse
-import sentencepiece_tokenizer as st
+# import sentencepiece_tokenizer as st
+from check_cm_distribution import wer_output_filter
 
 logging.basicConfig(
     format = "%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s",
@@ -28,6 +28,7 @@ def parse_opts():
     parser.add_argument('--get_rover2', action='store_true', help='')
     parser.add_argument('--get_tags', action='store_true', help='')
     parser.add_argument('--bpe_model', type=str, default=None, help='')
+    parser.add_argument('--apply_filter', action='store_true', help='')
 
     opts = parser.parse_args()
     return opts
@@ -92,9 +93,9 @@ def get_ref(opts, text):
 def get_ref_no_scores(opts, text):
     if opts.bpe_model is not None:
         sp = st.SentencepiecesTokenizer(opts.bpe_model)
-        text_process_func = sp.text2tokens
+        text_process_func = sp.text2tokens   # TODO: this has bug!!!
     else:
-        text_process_func = lambda x: x
+        text_process_func = lambda x: x.split()
 
     cnt = 0
     with open(opts.nbest, "r") as fin_nbest, \
@@ -114,8 +115,12 @@ def get_ref_no_scores(opts, text):
             else:
                 sent = ""
             
-            sent = ' '.join(text_process_func(sent))
-            sent_ref = ' '.join(text_process_func(text[uid]))
+            if opts.apply_filter:
+                sent = ' '.join(text_process_func(wer_output_filter(sent)))
+                sent_ref = ' '.join(text_process_func(wer_output_filter(text[uid])))
+            else:
+                sent = ' '.join(text_process_func(sent))
+                sent_ref = ' '.join(text_process_func(text[uid]))
 
             print(f"{uid}-{ith+1} {sent}", file=fout_hyp)
             print(f"{uid}-{ith+1} {sent_ref}", file=fout_ref)

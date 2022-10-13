@@ -13,7 +13,6 @@ cmd=queue.pl
 data=std2006_dev
 data=std2006_eval
 kws_exp=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/
-nbest_dir=${kws_exp}/nbest_kaldi/
 n=100
 # datasets="std2006_dev std2006_eval callhome_dev callhome_eval callhome_train"
 
