@@ -28,6 +28,10 @@ echo "The KWS results is taken from: $kwsoutputdir"
 trials=$(cat $kws_data_dir/trials)
 mkdir -p $kwsoutputdir/log/
 
+# filter_script="/export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/filter_kws_results.py"
+# filter_script=local/kws/filter_kws_results.pl
+filter_script=/export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/mini_librispeech/s5/local/kws/filter_kws_results.pl
+
 if [ $stage -le 0 ] ; then
   if [ -z "$ntrue_from" ]; then
     mkdir -p ${kwsoutputdir}/details/
@@ -47,7 +51,7 @@ if [ $stage -le 0 ] ; then
       ntrue=\$\(perl -e 'print 1+(NTRUE-1)/5.0' \) '&&' \
       cat ${kwsoutputdir}/results \|\
         local/kws/normalize_results_kst.pl --trials $trials --ntrue-scale \$ntrue \|\
-        local/kws/filter_kws_results.pl --probs --nbest 200   \|\
+        $filter_script --probs --nbest 200   \|\
         compute-atwv --max_distance=${max_distance} $trials ark,t:$kws_data_dir/hitlist ark:- \
         \> ${kwsoutputdir}/scoring/score.NTRUE.txt   # no need to set sweep-step here
 
@@ -73,7 +77,7 @@ fi
 if [ $stage -le 1 ] ; then
   cat ${kwsoutputdir}/results |\
     local/kws/normalize_results_kst.pl --trials $trials --ntrue-scale $(cat ${kwsoutputdir}/details/ntrue) |\
-    local/kws/filter_kws_results.pl --probs --nbest 200000 \
+    $filter_script --probs --nbest 200000 \
     > ${kwsoutputdir}/details/results
     
   cat ${kwsoutputdir}/details/results |\

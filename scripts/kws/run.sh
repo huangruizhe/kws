@@ -128,7 +128,7 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/search.sh \
  --stage 3
 cd -
 
-# max_distance 50 100 500
+# scoring max_distance 50 100 500
 cd $kaldi_path
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
  --lats_dir $lats_dir \
@@ -162,3 +162,83 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/oracle_wer.sh \
   --nsize $nsize  \
   --stage 2
 
+################################################
+# analysis
+################################################
+
+grep KW-00069 /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/per-category-score.txt
+grep KW-00069 /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi//kws_indices/kws_results/details_50/per-category-score.txt
+
+# KW-00007	english
+ref=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt
+kw=english
+kwid=KW-00007
+grep --color $kw $ref
+grep --color $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
+grep --color $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi//kws_indices/kws_results/details_50/alignment.csv
+
+# replace id with uid
+# nice!
+grep $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi//kws_indices/kws_results/details_50/alignment.csv \
+  | cut -d',' -f2 | utils/int2sym.pl -f 1  /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev/utt.map -
+
+show_alignment () {
+    kws_data_dir=$1
+    kwid=$2
+    alignment=$3
+    
+    echo $alignment
+    paste -d" " \
+    <(grep $kwid $alignment | cut -d',' -f2 | utils/int2sym.pl -f 1  $kws_data_dir/utt.map -) \
+    <(grep $kwid $alignment) | \
+    grep --color $kwid
+}
+kwid=KW-00007
+alignment=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
+kws_data_dir=/export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev
+show_alignment $kws_data_dir $kwid $alignment
+
+# ground truth transcription
+uid=en_4157_0A_00133
+grep $uid data/$data/text
+
+# nbest list
+grep -h $uid data/callhome_dev/text
+grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_kaldi/nbest/*/nbest.txt | head -$nsize | nl
+grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt | head -$nsize | nl
+
+grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_kaldi/temp/*/scoring_kaldi/hyp.text
+
+# clat
+job_id=33
+vi /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi/clat_eps2/clat.${job_id}.eps2.gz
+vi /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk/clat_eps2/clat.${job_id}.eps2.gz
+
+# raw results (before filtering and kst)
+vi /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi/kws_indices/kws_results/result.${job_id}.gz
+vi /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk/kws_indices/kws_results/result.${job_id}.gz
+
+### result 1 ###
+# 发现是deduplication algorithm有问题
+# 因为espnet生成的nbest较为冗余和混乱，例如：
+# en_4157_0A_00133-6201 that is good do they speak english
+# en_4157_0A_00133-6248 that is good do they speak english english and
+# 导致在生成lattice/CN时，产生冗余
+# KW-00007 468 100 134 0
+# KW-00007 468 134 137 10.73926
+# KW-00007 468 99 100 18.80859
+# 这种冗余性在查找时，才被filter掉
+
+vimdiff local/kws/filter_kws_results.pl /export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/mini_librispeech/s5/local/kws/filter_kws_results.pl
+
+### result 2 ###
+# fix the problem with https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5d/local/search/per_category_stats.pl#L236
+# WRONG:
+# my $stwv = 1 - $STATS{$kw}->{lattice_miss}/$STATS{$kw}->{ntrue};
+# SHOULD BE:
+# my $stwv = 1 - $STATS{$kw}->{miss}/$STATS{$kw}->{ntrue};
+#----------------------------------------------------------------
+# No. The above fix is not correct. The original scripts are correct, instead.
+# Note, there are two kinds of misses:
+# 1) The kw presents in the lattice/nbest, but it is not detected as the score is too low. (miss)
+# 2) The kw does not present in the lattice/nbest at all. (lattice_miss)

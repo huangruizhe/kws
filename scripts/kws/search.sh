@@ -46,6 +46,9 @@ kwsoutput=$indices_dir/kws_results
 mkdir -p $kwsoutput
 log "The results will be save in: $kwsoutput"
 
+# filter_script="/export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/filter_kws_results.py"
+# filter_script=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/local/kws/filter_kws_results.pl
+filter_script=/export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/mini_librispeech/s5/local/kws/filter_kws_results.pl
 
 if [[ ${stage} == 3 ]]; then
     log "Stage 3: Search"
@@ -82,8 +85,11 @@ if [[ ${stage} == 4 ]]; then
     # the (possible) command substitution in case of gz files
     # bash -c would probably work as well, but would spawn another
     # shell instance
+    # eval "sort -m -u $files" |\
+    #   local/kws/filter_kws_results.pl --likes --nbest $nbest > $kwsoutput/results || exit 1
+    script=/export/fs04/a12/rhuang/kws/kws-release/scripts/kws/filter_kws_results.py
     eval "sort -m -u $files" |\
-      local/kws/filter_kws_results.pl --likes --nbest $nbest > $kwsoutput/results || exit 1
+        $filter_script --likes --nbest $nbest > $kwsoutput/results || exit 1
     
     log "Done: $(wc -l $kwsoutput/results)"
 fi
