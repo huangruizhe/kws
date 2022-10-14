@@ -28,9 +28,9 @@ echo "The KWS results is taken from: $kwsoutputdir"
 trials=$(cat $kws_data_dir/trials)
 mkdir -p $kwsoutputdir/log/
 
-# filter_script="/export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/filter_kws_results.py"
+filter_script="/export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/filter_kws_results.py"
 # filter_script=local/kws/filter_kws_results.pl
-filter_script=/export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/mini_librispeech/s5/local/kws/filter_kws_results.pl
+# filter_script=/export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/mini_librispeech/s5/local/kws/filter_kws_results.pl
 
 if [ $stage -le 0 ] ; then
   if [ -z "$ntrue_from" ]; then
