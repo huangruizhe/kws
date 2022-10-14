@@ -71,7 +71,7 @@ data=std2006_eval
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_espnet0.8/
 kws_data_dir=/export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_$data
-keywords=/export/fs04/a12/rhuang/kws/kws/data0/$data/kws/keywords.$data.txt     # std2006
+# keywords=/export/fs04/a12/rhuang/kws/kws/data0/$data/kws/keywords.$data.txt     # std2006
 keywords=/export/fs04/a12/rhuang/kws/kws/data/${data}/kws/queries/keywords.txt  # callhome
 scale=1.0
 nsize=50
@@ -177,21 +177,23 @@ grep --color $kw $ref
 grep --color $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
 grep --color $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi//kws_indices/kws_results/details_50/alignment.csv
 
+grep 5202 $kws_data_dir/utt.map
+
 # replace id with uid
 # nice!
 grep $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi//kws_indices/kws_results/details_50/alignment.csv \
   | cut -d',' -f2 | utils/int2sym.pl -f 1  /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev/utt.map -
 
 show_alignment () {
-    kws_data_dir=$1
-    kwid=$2
-    alignment=$3
+    _kws_data_dir=$1
+    _kwid=$2
+    _alignment=$3
     
-    echo $alignment
+    echo $_alignment
     paste -d" " \
-    <(grep $kwid $alignment | cut -d',' -f2 | utils/int2sym.pl -f 1  $kws_data_dir/utt.map -) \
-    <(grep $kwid $alignment) | \
-    grep --color $kwid
+    <(grep $_kwid $_alignment | cut -d',' -f2 | utils/int2sym.pl -f 1  $_kws_data_dir/utt.map -) \
+    <(grep $_kwid $_alignment) | \
+    grep --color $_kwid
 }
 kwid=KW-00007
 alignment=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
@@ -204,8 +206,11 @@ grep $uid data/$data/text
 
 # nbest list
 grep -h $uid data/callhome_dev/text
+grep -h $uid $ref
 grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_kaldi/nbest/*/nbest.txt | head -$nsize | nl
 grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt | head -$nsize | nl
+
+grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/token.txt | head -$nsize | nl
 
 grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_kaldi/temp/*/scoring_kaldi/hyp.text
 
@@ -242,3 +247,26 @@ vimdiff local/kws/filter_kws_results.pl /export/fs04/a12/rhuang/kaldi_latest/kal
 # Note, there are two kinds of misses:
 # 1) The kw presents in the lattice/nbest, but it is not detected as the score is too low. (miss)
 # 2) The kw does not present in the lattice/nbest at all. (lattice_miss)
+
+# check bpe encoding
+export PYTHONPATH=$PYTHONPATH:/export/fs04/a12/rhuang/espnet/
+python
+from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
+bpemodel="/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/data/en_token_list/bpe_unigram2000/bpe.model"
+tokenizer = SentencepiecesTokenizer(bpemodel)
+# /export/fs04/a12/rhuang/espnet/espnet2/text/sentencepiece_tokenizer.py
+text=""
+tokenizer.text2tokens(text)
+
+# The beam search results can be quite redandant:
+kw=shit
+kwid=KW-00031
+grep -h en_4686_0B_00288 /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt
+grep -h en_4686_0B_00288 /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/token.txt
+
+
+# How many lattice-miss hits are actually appear in the hypothesis?
+python /export/fs04/a12/rhuang/kws/kws-release/scripts/alignment2.py \
+  --keywords /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev/keywords.txt \
+  --utt_map /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev/utt.map \
+  --alignment /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv

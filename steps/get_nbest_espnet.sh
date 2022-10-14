@@ -142,7 +142,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
             > $nbest_dir/nbest/${job_id}/nbest.txt
             echo "Done: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+        else
+            echo "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+        fi
 
+        if [[ ! -f $nbest_dir/nbest/${job_id}/token.txt ]]; then
             (
                 for ibest in `seq 1 $nbest`; do 
                     [ -f $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/token ] \
@@ -156,7 +160,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             > $nbest_dir/nbest/${job_id}/token.txt
             echo "Done: `wc $nbest_dir/nbest/${job_id}/token.txt`"
         else
-            echo "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+            echo "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/token.txt`"
         fi
     done    
 
