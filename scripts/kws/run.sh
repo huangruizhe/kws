@@ -103,6 +103,7 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
 cd -
 
 # get clats from nbest
+export PYTHONPATH=$PYTHONPATH:
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_confusion_network.sh \
   --nsize $nsize \
   --nbest_dir $nbest_dir \
@@ -304,3 +305,6 @@ uid=en_4315_0B_00011
 nbest='/export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt'
 grep -h $uid $nbest | head -$nsize | nl
 
+recording_id=en_4315_0B
+job_id=5
+clat=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk/clat_eps2/clat.${job_id}.eps2.gz

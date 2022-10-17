@@ -100,8 +100,20 @@ if [ $stage -le 2 ] ; then
   ## are not needed
   ## we create the alignments of the data directory
   ## this is only so that we can obtain the hitlist
-  # steps/align_fmllr.sh --nj 5 --cmd "$cmd" \
-  #    $data_dir $lang exp/tri3 exp/tri3b_ali_$data
+  steps/align_fmllr.sh --nj 5 --cmd "$cmd" --beam 10 --retry_beam 60 \
+     $data_dir $lang exp/tri3 exp/tri3b_ali_$data
+
+  msg=`grep "Done.*,\serrors\son" exp/tri3b_ali_$data/log/align_pass2.*.log |\
+    grep -v "Done.*,\serrors\son\s0" -`
+  if [[ ! -z $msg ]]; then
+    echo "[Warning] These utterances do not have alignment:" | grep --color "Warning"
+    echo "          You may need to manually inspect them, or use larger beam or retry_beam"
+
+    grep "Done.*,\serrors\son" exp/tri3b_ali_$data/log/align_pass2.*.log |\
+        grep -v "Done.*,\serrors\son\s0" -
+      
+    grep --color "Did not successfully decode file" exp/tri3b_ali_$data/log/align_pass2.*.log
+  fi
 
   ${kaldi_path}/local/kws/create_hitlist.sh $data_dir $lang ${kaldi_path}/data/local/lang \
     ${kaldi_path}/exp/tri3b_ali_$data $kws_data_dir

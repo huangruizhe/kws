@@ -60,8 +60,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "Stage 1: Create alignment exp/tri3_ali_1best${kaldi}_$data"
     # steps/align_fmllr.sh --nj $nj --cmd "$cmd" \
     #     data/${data}_1best $lang exp/tri3 exp/tri3_ali_1best_$data
-    steps/align_fmllr.sh --nj $nj --cmd "$cmd" \
+    steps/align_fmllr.sh --nj $nj --cmd "$cmd" --retry_beam 60 \
         data/${data}_1best${tag} $lang exp/tri3 exp/tri3_ali_1best${tag}_$data
+
+    msg=`grep "Done.*,\serrors\son" exp/tri3_ali_1best${tag}_$data/log/align_pass2.*.log |\
+      grep -v "Done.*,\serrors\son\s0" -`
+    if [[ ! -z $msg ]]; then
+        echo "[Warning] These utterances do not have alignment:" | grep --color "Warning"
+        # You may need to manually inspect them, or use larger beam or retry_beam
+
+        grep "Done.*,\serrors\son" exp/tri3_ali_1best${tag}_$data/log/align_pass2.*.log |\
+            grep -v "Done.*,\serrors\son\s0" -
+    fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
