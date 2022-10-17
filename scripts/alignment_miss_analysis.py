@@ -112,7 +112,7 @@ def read_alignment(args):
         for l in fin:
             if line_count < 1:  # skip the header
                 line_count += 1
-                print(l.strip())
+                # print(l.strip())
                 continue
             else:
                 ll = l.strip().split(sep=",")
@@ -121,6 +121,7 @@ def read_alignment(args):
 
     lattice_miss_count = 0
     lattice_miss_but_in_cache_count = 0
+    target_kws = set()
     for kw, hits in kw2hits.items():
         hits_subset = [(j, hit) for j, hit in enumerate(hits) if hit["sys_bt"] != ""]
         for i, hit1 in enumerate(hits):
@@ -133,15 +134,20 @@ def read_alignment(args):
             lattice_miss_count += 1
             
             for j, hit2 in hits_subset:
-                if j == i:
+                if j == i:  # the same hit
                     continue
                 if hit2["recording_id"] == hit1["recording_id"]:
                 # if hit2["recording_id"] == hit1["recording_id"] and hit2["alignment"] == "CORR":
                     lattice_miss_but_in_cache_count += 1
+                    target_kws.add((kw, hit1["recording_id"]))
                     break
         
     print(f"lattice_miss_count={lattice_miss_count}")
     print(f"lattice_miss_but_in_cache_count={lattice_miss_but_in_cache_count}")
+    
+    for i in range(max([len(kw.split()) for kw, rec in target_kws])):
+        ngrams = [(kw, rec) for kw, rec in target_kws if len(kw.split()) == i+1]
+        print(f"{i+1}-gram (count={len(ngrams)}): {ngrams} \n")
 
 def main():
     args = get_args()

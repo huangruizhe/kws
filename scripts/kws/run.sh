@@ -172,7 +172,8 @@ grep KW-00069 /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi
 # KW-00007	english
 ref=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt
 kw=english
-kwid=KW-00007
+# kwid=KW-00007
+kwid=$(grep "$kw" $kws_data_dir/keywords.txt | cut -f1)
 grep --color $kw $ref
 grep --color $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
 grep --color $kwid /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_kaldi//kws_indices/kws_results/details_50/alignment.csv
@@ -203,6 +204,7 @@ show_alignment $kws_data_dir $kwid $alignment
 # ground truth transcription
 uid=en_4157_0A_00133
 grep $uid data/$data/text
+grep $uid $ref
 
 # nbest list
 grep -h $uid data/callhome_dev/text
@@ -266,7 +268,39 @@ grep -h en_4686_0B_00288 /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_de
 
 
 # How many lattice-miss hits are actually appear in the hypothesis?
-python /export/fs04/a12/rhuang/kws/kws-release/scripts/alignment2.py \
+python /export/fs04/a12/rhuang/kws/kws-release/scripts/alignment_miss_analysis.py \
   --keywords /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev/keywords.txt \
   --utt_map /export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_callhome_dev/utt.map \
   --alignment /export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
+
+# get word frequency list in a recording or nbest list
+recording_id=en_4686_0B   # en_4686_0B_00288 shit
+grep $recording_id data/callhome_dev/text | cut -d" " -f2-
+grep $recording_id data/callhome_dev/text | cut -d" " -f2- | \
+  tr ' ' '\n' | sort | uniq -c | sort -r # | awk '{print $2"@"$1}'
+
+# frequency from nbest list
+nbest_list='/export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt'
+grep -h $recording_id $nbest_list | wc
+grep -h $recording_id $nbest_list | \
+  grep ship | wc
+grep -h $recording_id $nbest_list | \
+  grep shit | wc
+
+grep -h $uid /export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt
+
+
+
+alignment=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_1.0_50_topk//kws_indices/kws_results/details_50/alignment.csv
+kw=psychologist
+# grep $kw $kws_data_dir/keywords.txt
+kw_id=$(grep "$kw" $kws_data_dir/keywords.txt | cut -f1)
+grep $kw  $ref
+grep --color $kw_id $alignment
+show_alignment $kws_data_dir $kwid $alignment
+# 发现是timing的问题。。。
+
+uid=en_4315_0B_00011
+nbest='/export/fs04/a12/rhuang/kws/kws-release/exp/callhome_dev/nbest_topk/nbest/*/nbest.txt'
+grep -h $uid $nbest | head -$nsize | nl
+

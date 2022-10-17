@@ -71,6 +71,7 @@ $cmd JOB=1:$nj $nbest_dir/log/nbest.JOB.log \
     join -j 1 $adir.JOB/{lm_cost,ac_cost} \| awk -v acwt=$acwt "{print \\\$1, (- \\\$2 - \\\$3 * acwt);}" \| \
     join -j 1 \- $adir.JOB/words_text \| awk "{\\\$1=substr(\\\$1, 1, match(\\\$1, /-[^-]*$/)-1)}1" \
     \> $nbest_dir/nbest/JOB/nbest.txt
+wc $nbest_dir/nbest/1/nbest.txt
 
 # Note: nbest.txt is of this format:
 # (uid, log-prob, sentence)

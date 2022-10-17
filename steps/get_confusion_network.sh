@@ -63,7 +63,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     mkdir -p ${lats_dir}/clat/
 
     # script=/export/fs04/a12/rhuang/kws/kws/local/rover5.py
-    script=/export/fs04/a12/rhuang/kws/kws/local/rover6.py
+    script=/export/fs04/a12/rhuang/kws/kws-release/scripts/rover6.py
     $cmd JOB=1:$nj ${lats_dir}/log/nbest2lat.JOB.log \
         /export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python3 \
           $script --workdir ${nbest_dir}/nbest/JOB/ \
