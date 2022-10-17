@@ -71,6 +71,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         grep "Done.*,\serrors\son" exp/tri3_ali_1best${tag}_$data/log/align_pass2.*.log |\
             grep -v "Done.*,\serrors\son\s0" -
+
+        grep --color "Did not successfully decode file" exp/tri3b_ali_$data/log/align_pass2.*.log
     fi
 fi
 

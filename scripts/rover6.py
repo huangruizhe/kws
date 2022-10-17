@@ -19,7 +19,7 @@ import gzip
 import pickle
 
 from tqdm import tqdm
-
+from jellyfish import jaro_distance
 
 from check_cm_distribution import wer_output_filter
 
@@ -895,7 +895,7 @@ class SausageBin:
             return a in b
 
     @classmethod
-    def test(cls, a, b):
+    def test1(cls, a, b):
         assert (isinstance(a, SausageBin) and isinstance(b, str)) or \
             (isinstance(a, str) and isinstance(b, SausageBin))
 
@@ -921,6 +921,47 @@ class SausageBin:
         # 1. the duration of the bin (the larger the better match?)
         # 2. the index of the bin (prefer earlier bins?)
 
+    @classmethod
+    def test(cls, a, b):
+        assert (isinstance(a, SausageBin) and isinstance(b, str)) or \
+            (isinstance(a, str) and isinstance(b, SausageBin))
+
+        if isinstance(b, SausageBin):
+            temp = a
+            a = b
+            b = temp
+        
+        # Now check: 
+        # (1) if string "b" is in bin "a"? 
+        # (2) if so, how well is it matched? 
+        # (3) if not, how close are they?
+
+        # Return a "cost", where cost=0 means a perfect match, while cost=1 means not matched
+        if b in a:  # matched
+            return 0 - len(a.word2link[b].uids) / 1000   # the more uids, the better
+        else:
+            # li = [len(link.uids) for w, link in a.word2link.items() if w != EPSILON]
+            # bonus = max(li + [0])
+            # return 1 - bonus / 1000   # the more uids, the better
+
+            # consider string similarity between "b" and "w"
+            li = [string_sim(w, b) for w, link in a.word2link.items() if w != EPSILON]
+            bonus = max(li + [0])
+            return 1 - bonus / 10
+
+
+# https://stackoverflow.com/questions/17388213/find-the-similarity-metric-between-two-strings
+# https://www.geeksforgeeks.org/jaro-and-jaro-winkler-similarity/
+def string_sim(str1, str2, oov="<unk>"):
+    if str1 == str2:
+        return 1
+    if str1 == oov:
+        return 0.8 + len(str2)/1000  # longer strings have a bonus to match <unk>
+    if str2 == oov:
+        return 0.8 + len(str1)/1000
+    return jaro_distance(str1, str2)
+
+
 class Sausage:
     def __init__(self, hyp=None, ali=None, place_holder=False):
         self.sausage_bins = list()
@@ -939,6 +980,9 @@ class Sausage:
             ret += str(bin)
             ret += "\n"
         return ret
+    
+    def show_bins(self):
+        return [list(b.word2link.keys()) for b in self.sausage_bins]
     
     def __getitem__(self, i):
         return self.sausage_bins[i]
@@ -964,6 +1008,11 @@ class Sausage:
         # logging.info(f"{hyp.words} {hyp.utterance_score}")
         # logging.info(edits)
         # TODO: we may make this alignment better, with some rules/heuristics
+
+        # debug:
+        # hyp.words
+        # self.show_bins()
+        # [[elem[0], hyp.words[elem[1]], self.sausage_bins[elem[3]].word2link.keys()] for elem in edits]
 
         # Turn hyp into self.sausage_bins according to edits
         # For information about edits:

@@ -77,6 +77,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     grep -iF "error" ${lats_dir}/log/nbest2lat.*.log
     grep -iF "warning" ${lats_dir}/log/nbest2lat.*.log
+    grep "ali is not valid" ${lats_dir}/log/nbest2lat.*.log
     echo "Done: `ls -lah ${lats_dir}/clat/clat.1.gz`"
 fi
 

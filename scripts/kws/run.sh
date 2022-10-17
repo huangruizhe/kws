@@ -103,7 +103,7 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
 cd -
 
 # get clats from nbest
-export PYTHONPATH=$PYTHONPATH:
+# export PYTHONPATH=$PYTHONPATH:/export/fs04/a12/rhuang/espnet/
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_confusion_network.sh \
   --nsize $nsize \
   --nbest_dir $nbest_dir \
