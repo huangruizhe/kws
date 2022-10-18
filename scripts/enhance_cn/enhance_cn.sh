@@ -124,6 +124,7 @@ zcat $clat | \
 > test/confusion/freq.txt
 
 # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/kws_data_prep_proxy.sh#L205
+# #### Creates keyword list that we need to generate proxies for.
 cat $wdir/freq.txt | perl -e '
   open(W, "<'$wdir/stopwords.txt'") ||
     die "Fail to open stopwords: '$wdir/stopwords.txt'\n";
@@ -249,7 +250,7 @@ kaldi_asr=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
 oldlang=${kaldi_asr}/data/lang_sw1_fsh_fg
 
 # create our new words.txt
-cat <(awk '{print $1;}' $oldlang/words.txt) <(awk '{print $1;}' $L1_lex) | \
+cat <(awk '{print $1;}' $oldlang/words.txt) <(awk '{print $1;}' $L1_lex) <(awk '{print $1;}' $L2_lex) | \
  sort -u | comm -23 - <(awk '{print $1;}' $oldlang/words.txt | sort -u) \
 > $wdir/new_words.txt
 cp $oldlang/words.txt $wdir/words.txt
@@ -357,12 +358,49 @@ vi $clat
 # georgia's
 # georgia
 
+# cat <<EOF > $wdir/bin_words.txt
+# georgia's
+# georgia
+# george's
+# georges
+# EOF
+
 cat <<EOF > $wdir/bin_words.txt
-georgia's
-georgia
-george's
-georges
+bet
+bad
+good
+bed
+but
+beth
+better
+that
+big
+about
+yes
+gosh
+boy
+be
+both
+goodness
+back
+been
+bird
+yeah
+bill
+pet
+six
+bit
+beg
+bits
+bets
+beck
+bell
+bells
+bett
+beds
 EOF
+
+sed -i -r '/^.{,3}$/d' $wdir/bin_words.txt
 
 # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/generate_proxy_keywords.sh
 # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/kws_data_prep_proxy.sh
@@ -484,7 +522,7 @@ cat $proxy_kws | utils/int2sym.pl -f 3- $wdir/words.txt |\
   sort | join -j1 <(sort $wdir/keywords.txt) - > $wdir/expanded_keywords.txt
 
 echo "Done: `wc $wdir/expanded_keywords.txt`"
-cat $wdir/expanded_keywords.txt | sed 's/<.*>/ /g' | awk 'NF==2{print}'
+cat $wdir/expanded_keywords.txt | awk 'NF<7' | sed 's/<.*>/ /g' | awk 'NF>=4' | awk '{if(NF==4 && $1 != $4){print $0; }}'
 
 # debug one file
 split -n r/1/$nj $keywords | \
@@ -497,6 +535,4 @@ generate-proxy-keywords --verbose=0 \
 # 2020-08-04:03:02:39
 fstcopy ark:$kwsdatadir/test.fsts ark,t:-
 
-# https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/kws_data_prep_proxy.sh#L205
-# # Creates keyword list that we need to generate proxies for.
 
