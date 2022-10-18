@@ -191,7 +191,7 @@ if [[ ! -f $phone_lex ]]; then
     cat <(cat $oldlang/phones.txt | awk "NF=1" | sed 's/_.*$//') \
       <(cat $wdir/L1_all.lex | awk '{for(i='$phone_start'; i <= NF; i++) {print $i;}}' | tr ' ' '\n' | sort -u) | \
       sort -u | grep -v "#" | grep -v "<eps>" | \
-      awk '{print "<"$1"> 1 "$1;}' \
+      awk '{print "<"$1"> 0.0000001 "$1;}' \
     > $phone_lex
     wc $phone_lex
 fi
@@ -240,9 +240,166 @@ cat $wdir/L1_disambig.lex |\
   "echo $word_disambig_symbol |" |\
   fstdeterminize | fstrmsymbols "echo $phone_disambig_symbols|" |\
   fstrmsymbols --remove-from-output=true "echo $word_disambig_symbols|" |\
-  fstarcsort --sort_type=ilabel > $wdir/L1.fst
+  fstarcsort --sort_type=ilabel > $wdir/L1_${recording_id}.fst
 
-ls -lah $wdir/L1.fst
+ls -lah $wdir/L1_${recording_id}.fst
+
+########################################
+# Generate prounciation L2 for all sausage bins in the recording
+# Generate L2.fst
+########################################
+
+python=/export/fs04/a12/rhuang/anaconda/anaconda3/envs/espnet_gpu/bin/python
+get_bin_words_py=/export/fs04/a12/rhuang/kws/kws-release/scripts/enhance_cn/get_bin_words.py
+
+recording_id=en_4315_0B
+
+wdir=test/confusion
+L1_lex=$wdir/L1_${recording_id}.lex
+
+zcat $lats_dir/clat_eps2/clat.*.eps2.gz | \
+    awk -v recording_id="$recording_id" 'BEGIN {flag=0; } {
+        if ($0 ~ recording_id) {
+            flag=1;
+            print;
+        } else if (flag == 1) {
+            if (length($0) == 0) {
+                flag=0;
+                print;
+            } else {
+                print;
+            }
+        } else {
+            ;
+        }
+    }' | \
+    $python $get_bin_words_py --l1_lex $L1_lex --w2keys $wdir/w2keys_${recording_id}.gz \
+> $wdir/bin_words_${recording_id}.txt
+wc $wdir/bin_words_${recording_id}.txt
+
+join -j 1 <(awk '{print $2}' $wdir/bin_words_${recording_id}.txt | sort) <(sort $wdir/L1_all.lex) \
+    > $wdir/L2_${recording_id}.lex
+wc $wdir/L2_${recording_id}.lex
+
+cat $wdir/L2_${recording_id}.lex |\
+  utils/make_lexicon_fst.pl $pron_probs_param - |\
+  fstcompile --isymbols=$wdir/phones.txt \
+  --osymbols=$wdir/words.txt - |\
+  fstinvert | fstarcsort --sort_type=olabel > $wdir/L2_${recording_id}.fst
+ls -lah $wdir/L2_${recording_id}.fst
+
+########################################
+# step4 generate E or E' from the counts
+########################################
+
+confusion_matrix=$wdir/confusions.txt
+count_cutoff=1      # Minimal count to be considered in the confusion matrix;
+
+# Compiles E.fst
+confusion_matrix_param=""
+if [ ! -z $confusion_matrix ]; then
+  echo "$0: Using confusion matrix, normalizing"
+  /export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/local/count_to_logprob.pl \
+    --cutoff $count_cutoff \
+    $confusion_matrix $wdir/confusionp.txt
+  confusion_matrix_param="--confusion-matrix $wdir/confusionp.txt"
+fi
+ls -lah $wdir/confusionp.txt
+
+cat $wdir/phones.txt |\
+  grep -v -E "<.*>" | grep -v "SIL" | awk '{print $1;}' |\
+  /export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/local/build_edit_distance_fst.pl \
+    --boundary-off=true \
+    $confusion_matrix_param - - |\
+    fstcompile --isymbols=$wdir/phones.txt \
+    --osymbols=$wdir/phones.txt - $wdir/E.fst
+ls -lah $wdir/E.fst
+
+########################################
+# step6 compose K x L2 x E x L1'
+########################################
+
+nj=10
+cmd=run.pl
+
+# https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/kws_data_prep_proxy.sh
+beam=-1             # Beam for proxy FST, -1 means no prune
+phone_beam=-1       # Beam for KxL2xE FST, -1 means no prune
+nbest=-1            # Use top n best proxy keywords in proxy FST, -1 means all
+                    # proxies
+phone_nbest=100      # Use top n best phone sequences in KxL2xE, -1 means all
+                    # phone sequences
+phone_cutoff=5      # We don't generate proxy keywords for OOV keywords that
+                    # have less phones than the specified cutoff as they may
+                    # introduce a lot false alarms
+
+L1_fst=$wdir/L1_${recording_id}.fst
+L2_fst=$wdir/L2_${recording_id}.fst
+
+# Pre-composes L2 and E, for the sake of efficiency
+fstcompose $L2_fst $wdir/E.fst |\
+  fstarcsort --sort_type=ilabel > $wdir/L2xE_${recording_id}.fst
+
+keywords_text=$wdir/bin_words_${recording_id}.txt
+keywords_int=$wdir/bin_words_${recording_id}.int
+cat $keywords_text |\
+  utils/sym2int.pl -f 2- $wdir/words.txt | sort -R > $keywords_int
+
+# less $keywords_int
+
+nof_keywords=`cat $keywords|wc -l`
+if [ $nj -gt $nof_keywords ]; then
+  nj=$nof_keywords
+  echo "$0: Too many number of jobs, using $nj instead"
+fi
+
+# Generates the proxy keywords
+mkdir -p $wdir/split/log
+time $cmd JOB=1:$nj $wdir/split/log/proxy.JOB.log \
+  split -n r/JOB/$nj $keywords_int \| \
+  generate-proxy-keywords --verbose=1 \
+  --proxy-beam=$beam --proxy-nbest=$nbest \
+  --phone-beam=$phone_beam --phone-nbest=$phone_nbest \
+  $wdir/L2xE_${recording_id}.fst $L1_fst ark:- ark:$wdir/split/proxy.JOB.fsts ark,t:$wdir/split/proxy.JOB.kwlist.txt
+
+proxy_fsts=""
+proxy_kws=""
+for j in `seq 1 $nj`; do
+  proxy_fsts="$proxy_fsts $wdir/split/proxy.$j.fsts"
+  proxy_kws="$proxy_kws $wdir/split/proxy.$j.kwlist.txt"
+done
+cat $proxy_fsts > $wdir/expanded_keywords_${recording_id}.fsts
+cat $proxy_kws | utils/int2sym.pl -f 3- $wdir/words.txt > $wdir/expanded_keywords_${recording_id}.txt
+
+echo "Done: `wc $wdir/expanded_keywords_${recording_id}.txt`"
+cat $wdir/expanded_keywords_${recording_id}.txt | awk 'NF<7' | sed 's/<.*>/ /g' \
+  | awk 'NF>=3' \
+> $wdir/expanded_keywords_${recording_id}.final.txt
+wc $wdir/expanded_keywords_${recording_id}.final.txt
+
+#### debug:
+
+kw=side
+grep "^$kw" $wdir/expanded_keywords_${recording_id}.txt | awk 'NF<7' | sed 's/<.*>/ /g' | awk 'NF>=3'
+grep "^beside" $L1_lex
+grep "s ah" test/confusion/confusionp.txt
+
+# 最后proxy的分数的算法是，把下面三者相加
+# 1. L2里proxy的发音的log prob(需对prob取log)
+# 2. test/confusion/confusionp.txt里的编辑操作的log prob求和
+# 3. L1里proxy的发音的log prob(需对prob取log)
+
+split -n r/1/$nj test/confusion/keywords.int | \
+generate-proxy-keywords --verbose=0 \
+  --proxy-beam=$beam --proxy-nbest=$nbest \
+  --phone-beam=$phone_beam --phone-nbest=$phone_nbest \
+  $wdir/L2xE.fst $wdir/L1.fst ark:- ark:$wdir/split/proxy.1.fsts ark,t:-
+
+split -n r/1/$nj $keywords_int | \
+generate-proxy-keywords --verbose=0 \
+  --proxy-beam=$beam --proxy-nbest=$nbest \
+  --phone-beam=$phone_beam --phone-nbest=$phone_nbest \
+  $wdir/L2xE.fst $wdir/L1.fst ark:- ark:$wdir/split/proxy.1.fsts ark,t:-
 
 
-
+fstcopy ark:$L1_fst ark,t:-

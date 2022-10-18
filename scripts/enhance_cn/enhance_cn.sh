@@ -25,7 +25,7 @@ echo "been prepared and stored in the directory <kws-data-dir>."
 
 # step4: generate E or E' from the counts
 
-# step5: generate prounciation L1 for each sausage bin, similar to step123
+# step5: generate prounciation L2 for each sausage bin, similar to step123
 
 # step6: compose K x L2 x E x L1'
 # step7: enhance this bin by inserting the new but cached words
@@ -227,7 +227,7 @@ mv test/confusion/temp_lex/lexicon.txt $wdir/L1.lex
 rm -r test/confusion/temp_lex
 
 ########################################
-# step3 generate L1
+# step3 generate L1.fst
 ########################################
 
 # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5c/local/datasets/extra_kws.sh
@@ -295,7 +295,7 @@ cat $wdir/L1_disambig.lex |\
 
 ls -lah $wdir/L1.fst
 
-# TODO: take a subset of L1.fst => just take a subset of L1.lex
+# TODO: take a subset of L1.fst => just take a subset of L1.lex [done]
 
 ########################################
 # step4 generate E or E' from the counts
@@ -522,7 +522,7 @@ cat $proxy_kws | utils/int2sym.pl -f 3- $wdir/words.txt |\
   sort | join -j1 <(sort $wdir/keywords.txt) - > $wdir/expanded_keywords.txt
 
 echo "Done: `wc $wdir/expanded_keywords.txt`"
-cat $wdir/expanded_keywords.txt | awk 'NF<7' | sed 's/<.*>/ /g' | awk 'NF>=4' | awk '{if(NF==4 && $1 != $4){print $0; }}'
+cat $wdir/expanded_keywords.txt | awk 'NF<7' | sed 's/<.*>/ /g' | awk 'NF>=4' | awk '{if(NF==4 && $2 != $4){print $0; }}'
 
 # debug one file
 split -n r/1/$nj $keywords | \
