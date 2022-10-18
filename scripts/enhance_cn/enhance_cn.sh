@@ -46,7 +46,7 @@ nsize=50
 lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_${data}_${scale}_${nsize}
 
 ########################################
-# step1
+# step1 collect the cached words for each recording (collect all the words on the sausages)
 ########################################
 
 # Example:
@@ -75,6 +75,31 @@ zcat $clat | grep $recording_id | \
 # zcat $clat | grep $recording_id | wc
 # zcat $clat | awk -v recording_id="$recording_id" '{if ($0 ~ recording_id) {print;} else {;}}' | wc
 
+# stop words, or high frequency words
+top_thres=100
+zcat $lats_dir/clat_eps2/clat.*.eps2.gz | \
+  awk 'BEGIN {flag=0; } {
+      if (NF == 1) {
+          flag=1;
+          # print;
+      } else if (flag == 1) {
+          if (length($0) == 0) {
+              flag=0;
+          } else {
+              print;
+          }
+      } else {
+          ;
+      }
+  }' | \
+  cut -d" " -f3 | \
+  tr ' ' '\n' | \
+  sed '/^[[:space:]]*$/d' | sed -r '/^.{,3}$/d' | sed -r '/^\[.*\]$/d' |\
+  sed '/\[/d' | sed '/\]/d' | sed -r '/^.*\-$/d' | sed -r '/^<.*>$/d' |\
+  sort | uniq -c | sort -r | \
+  head -n $top_thres | awk '{print $2}' \
+> test/confusion/stopwords.txt
+
 recording_id=en_4315_0B
 zcat $clat | \
     awk -v recording_id="$recording_id" 'BEGIN {flag=0; } {
@@ -93,9 +118,33 @@ zcat $clat | \
     }' | \
     cut -d" " -f3 | \
     tr ' ' '\n' | \
-    sed '/^[[:space:]]*$/d' | sed -r '/^.{,3}$/d' | sed -r '/^\[.*\]$/d' | sed '/\[/d' | sed '/\]/d' | sed -r '/^.*\-$/d' | sed -r '/^<.*>$/d' |  \
+    sed '/^[[:space:]]*$/d' | sed -r '/^.{,3}$/d' | sed -r '/^\[.*\]$/d' | \
+    sed '/\[/d' | sed '/\]/d' | sed -r '/^.*\-$/d' | sed -r '/^<.*>$/d' | \
     sort | uniq -c | sort -r \
 > test/confusion/freq.txt
+
+# https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/kws_data_prep_proxy.sh#L205
+cat $wdir/freq.txt | perl -e '
+  open(W, "<'$wdir/stopwords.txt'") ||
+    die "Fail to open stopwords: '$wdir/stopwords.txt'\n";
+  my %stopwords;
+  while (<W>) {
+    chomp;
+    $stopwords{$_} = 1;
+  }
+  while (<>) {
+    chomp;
+    my $line = $_;
+    my @col = split();
+    @col != 2 && die "Bad line in input file: $_\n";
+    if (! defined($stopwords{$col[1]})) {
+      print "$line\n";
+    }
+  }' > $wdir/freq_filtered.txt 
+
+# Unused filters:
+# grep -v "'"  # note that there are many queries contains the symbol "'" for both callhome and std2006. grep "'" /export/fs04/a12/rhuang/kws/kws/data/${data}/kws/queries/keywords.txt
+# grep -v -F -f file2 file1
 
 # Check and understand the sed filters above!!
 # https://stackoverflow.com/questions/5410757/how-to-delete-from-a-text-file-all-lines-that-contain-a-specific-string
@@ -121,7 +170,7 @@ zcat $clat | head -50 | \
 awk 'length>3' file
 
 ########################################
-# step2
+# step2 generate pronunciation for the cached words, via lexicon or g2p
 ########################################
 
 freq=test/confusion/freq.txt
@@ -177,7 +226,7 @@ mv test/confusion/temp_lex/lexicon.txt $wdir/L1.lex
 rm -r test/confusion/temp_lex
 
 ########################################
-# step3
+# step3 generate L1
 ########################################
 
 # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5c/local/datasets/extra_kws.sh
@@ -187,6 +236,14 @@ rm -r test/confusion/temp_lex
 wdir=test/confusion
 L1_lex=$wdir/L1.lex
 L2_lex=$wdir/L2.lex
+
+phone_lex=$wdir/phone.lex
+# Assume the existence of $wdir/phones.txt
+cat $wdir/phones.txt | \
+  grep -v "#" | grep -v "<eps>" | \
+  awk '{print "<"$1"> 1 "$1;}' > $phone_lex
+
+cat $phone_lex >> $L1_lex
 
 kaldi_asr=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
 oldlang=${kaldi_asr}/data/lang_sw1_fsh_fg
@@ -209,6 +266,7 @@ ndisambig=`utils/add_lex_disambig.pl \
   $pron_probs_param $L1_lex $wdir/L1_disambig.lex`
 ndisambig=$[$ndisambig+1]; # add one disambig symbol for silence in lexicon FST.
 ( for n in `seq 0 $ndisambig`; do echo '#'$n; done ) > $wdir/disambig.txt
+wc $wdir/disambig.txt
 
 cat $L1_lex $L2_lex |\
   awk '{for(i='$phone_start'; i <= NF; i++) {print $i;}}' |\
@@ -236,10 +294,10 @@ cat $wdir/L1_disambig.lex |\
 
 ls -lah $wdir/L1.fst
 
-# TODO: take a subset of L1.fst
+# TODO: take a subset of L1.fst => just take a subset of L1.lex
 
 ########################################
-# step4
+# step4 generate E or E' from the counts
 ########################################
 
 confusion_matrix=$wdir/confusions.txt
@@ -266,7 +324,7 @@ cat $wdir/phones.txt |\
 ls -lah $wdir/E.fst
 
 ########################################
-# step5
+# step5 generate prounciation L1 for each sausage bin, similar to step123
 ########################################
 
 # consider an example
@@ -370,7 +428,7 @@ cat $wdir/L2.lex |\
   fstinvert | fstarcsort --sort_type=olabel > $wdir/L2.fst
 
 ########################################
-# step6
+# step6 compose K x L2 x E x L1'
 ########################################
 
 nj=6
@@ -426,7 +484,7 @@ cat $proxy_kws | utils/int2sym.pl -f 3- $wdir/words.txt |\
   sort | join -j1 <(sort $wdir/keywords.txt) - > $wdir/expanded_keywords.txt
 
 echo "Done: `wc $wdir/expanded_keywords.txt`"
-cat $wdir/expanded_keywords.txt
+cat $wdir/expanded_keywords.txt | sed 's/<.*>/ /g' | awk 'NF==2{print}'
 
 # debug one file
 split -n r/1/$nj $keywords | \
@@ -442,25 +500,3 @@ fstcopy ark:$kwsdatadir/test.fsts ark,t:-
 # https://github.com/kaldi-asr/kaldi/blob/master/egs/babel/s5b/local/kws_data_prep_proxy.sh#L205
 # # Creates keyword list that we need to generate proxies for.
 
-# stop words, or high frequency words
-clat="$lats_dir/clat_eps2/clat.*.eps2.gz"
-zcat $clat | \
-  awk 'BEGIN {flag=0; } {
-      if (NF == 1) {
-          flag=1;
-          # print;
-      } else if (flag == 1) {
-          if (length($0) == 0) {
-              flag=0;
-          } else {
-              print;
-          }
-      } else {
-          ;
-      }
-  }' | \
-  cut -d" " -f3 | \
-  tr ' ' '\n' | \
-  sed '/^[[:space:]]*$/d' | sed -r '/^.{,3}$/d' | sed -r '/^\[.*\]$/d' | sed '/\[/d' | sed '/\]/d' | sed -r '/^.*\-$/d' | sed -r '/^<.*>$/d' |  \
-  sort | uniq -c | sort -r \
-> test/confusion/all_freq.txt
