@@ -952,6 +952,7 @@ class SausageBin:
 
 # https://stackoverflow.com/questions/17388213/find-the-similarity-metric-between-two-strings
 # https://www.geeksforgeeks.org/jaro-and-jaro-winkler-similarity/
+# https://jamesturk.github.io/jellyfish/functions/
 def string_sim(str1, str2, oov="<unk>"):
     if str1 == str2:
         return 1
