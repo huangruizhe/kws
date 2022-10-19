@@ -116,8 +116,11 @@ fi
 # Convert ESPNet's nbest format to our format
 ################################################
 
+espnet=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1
+
 espnet_decode_dir=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/exp/espnet/roshansh_asr_base_sp_conformer_swbd/decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_stochastic0.8/$data/
 espnet_decode_dir=$decode
+espnet_decode_dir=$espnet/
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
@@ -141,9 +144,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             sort -s -k1,1 | \
             awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
             > $nbest_dir/nbest/${job_id}/nbest.txt
-            echo "Done: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+            log "Done: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
         else
-            echo "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+            log "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
         fi
 
         if [[ ! -f $nbest_dir/nbest/${job_id}/token.txt ]]; then
@@ -158,9 +161,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             sort -s -k1,1 | \
             awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
             > $nbest_dir/nbest/${job_id}/token.txt
-            echo "Done: `wc $nbest_dir/nbest/${job_id}/token.txt`"
+            log "Done: `wc $nbest_dir/nbest/${job_id}/token.txt`"
         else
-            echo "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/token.txt`"
+            log "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/token.txt`"
         fi
     done    
 

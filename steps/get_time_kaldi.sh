@@ -60,7 +60,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "Stage 1: Create alignment exp/tri3_ali_1best${kaldi}_$data"
     # steps/align_fmllr.sh --nj $nj --cmd "$cmd" \
     #     data/${data}_1best $lang exp/tri3 exp/tri3_ali_1best_$data
-    steps/align_fmllr.sh --nj $nj --cmd "$cmd" --retry_beam 60 \
+    steps/align_fmllr.sh --nj $nj --cmd "$cmd" --beam 40 --retry_beam 100 \
         data/${data}_1best${tag} $lang exp/tri3 exp/tri3_ali_1best${tag}_$data
 
     msg=`grep "Done.*,\serrors\son" exp/tri3_ali_1best${tag}_$data/log/align_pass2.*.log |\
@@ -72,7 +72,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         grep "Done.*,\serrors\son" exp/tri3_ali_1best${tag}_$data/log/align_pass2.*.log |\
             grep -v "Done.*,\serrors\son\s0" -
 
-        grep --color "Did not successfully decode file" exp/tri3b_ali_$data/log/align_pass2.*.log
+        grep --color "Did not successfully decode file" exp/tri3_ali_1best${tag}_$data/log/align_pass2.*.log
     fi
 fi
 

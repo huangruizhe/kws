@@ -65,8 +65,12 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/score.sh \
 # Full process
 ################################################
 
+kaldi_path=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
+cd $kaldi_path
+
 data=std2006_dev
 data=std2006_eval
+data=callhome_dev
 
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_kaldi/
 nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_espnet0.8/
@@ -76,6 +80,15 @@ keywords=/export/fs04/a12/rhuang/kws/kws/data/${data}/kws/queries/keywords.txt  
 scale=1.0
 nsize=50
 lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_${data}_${scale}_${nsize}
+
+tag=espnet0.5
+nbest_dir=/export/fs04/a12/rhuang/kws/kws-release/exp/$data/nbest_$tag/
+kws_data_dir=/export/fs04/a12/rhuang/kws/kws-release/test/kws_data_dir_$data
+# keywords=/export/fs04/a12/rhuang/kws/kws/data0/$data/kws/keywords.$data.txt     # std2006
+keywords=/export/fs04/a12/rhuang/kws/kws/data/${data}/kws/queries/keywords.txt  # callhome
+scale=1.0
+nsize=50
+lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_${data}_${scale}_${nsize}_$tag
 
 
 # get nbest from kaldi's decode directory
@@ -87,7 +100,7 @@ lats_dir=/export/fs04/a12/rhuang/kws/kws-release/test/lats_dir_${data}_${scale}_
 bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_time_kaldi.sh \
  --data $data \
  --nbest_dir $nbest_dir \
- --tag "espnet1.2"
+ --tag "$tag"
 
 # get confidence scores for nbest
 # TODO
