@@ -122,6 +122,9 @@ espnet_decode_dir=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/exp/espnet/rosha
 espnet_decode_dir=$decode
 espnet_decode_dir=$espnet/
 
+echo $nbest_dir
+echo $espnet_decode_dir
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p $nbest_dir
@@ -171,6 +174,43 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         cut -d' ' -f1 $nbest_dir/nbest/$job_id/nbest.txt | sort -u > $nbest_dir/nbest/$job_id/utt
         # wc -l $nbest_dir/temp/$job_id/utt
     done
+fi
+
+if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
+    # merge jobs if there are too many job ids
+    # https://www.baeldung.com/linux/round-divided-number
+
+    new_nj=32
+
+    nj=`cat $nbest_dir/num_jobs`
+    mv $nbest_dir/nbest $nbest_dir/nbest_$nj
+    mkdir $nbest_dir/nbest
+
+    for job_id in `seq 1 $nj`; do 
+        # new_job_id=$(( 4 / 3 ))
+        new_job_id=$(( $job_id % $new_nj + 1))
+        mkdir -p $nbest_dir/nbest/${new_job_id}/
+        if [[ ! -f $nbest_dir/nbest_$nj/${job_id}/nbest.txt ]]; then
+            log "Warning: `File not exist: $nbest_dir/nbest/${job_id}/nbest.txt`"
+        else
+            cat $nbest_dir/nbest_$nj/${job_id}/nbest.txt >> $nbest_dir/nbest/${new_job_id}/nbest.txt
+        fi
+
+        if [[ ! -f $nbest_dir/nbest_$nj/${job_id}/token.txt ]]; then
+            log "Warning: `File not exist: $nbest_dir/nbest_$nj/${job_id}/token.txt`"
+        else
+            cat $nbest_dir/nbest_$nj/${job_id}/token.txt >> $nbest_dir/nbest/${new_job_id}/token.txt
+        fi
+    done
+
+    lc1=`wc -l $nbest_dir/nbest_$nj/*/nbest.txt | tail -n1 | awk 'NF=1'`
+    lc2=`wc -l $nbest_dir/nbest/*/nbest.txt | tail -n1 | awk 'NF=1'`
+    if [ ${lc1} -eq ${lc2} ]; then
+        log "Done successfully."
+        echo $new_nj > $nbest_dir/num_jobs
+    else
+        log "Done, but line numbers does not match: $lc1 vs. $lc2"
+    fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then

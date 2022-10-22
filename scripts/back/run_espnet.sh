@@ -1046,3 +1046,36 @@ bash run.sh --download_model $pretrained \
 # %SER 99.75 [ 6395 / 6411 ]
 # Scored 6411 sentences, 44 not present in hyp.
 # Done: exp/espnet/roshansh_asr_base_sp_conformer_swbd/decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_stochastic100.0/callhome_dev//scoring_kaldi/
+
+cd /home/hltcoe/rhuang/espnet/egs2/swbd/asr1
+
+temperature=0.1
+inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_stochastic${temperature}"
+nj=40
+bash run.sh \
+    --download_model espnet/roshansh_asr_base_sp_conformer_swbd \
+    --test_sets $data \
+    --skip_data_prep true \
+    --skip_train true \
+    --inference_args "--nbest 100 --beam_search_mode stochastic --temperature $temperature" \
+    --stop_stage 12 \
+    --inference_config conf/decode_asr_beam40.yaml \
+    --inference_tag $inference_tag \
+    --inference_nj $nj &
+# std2006_dev T=0.1: %WER 10.86 [ 3729 / 34324, 652 ins, 1165 del, 1912 sub ]
+# std2006_dev T=1.0: %WER 11.46 [ 3934 / 34324, 654 ins, 1365 del, 1915 sub ]
+
+data=std2006_dev_small
+inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_topk"
+bash run.sh \
+    --download_model espnet/roshansh_asr_base_sp_conformer_swbd \
+    --test_sets $data \
+    --skip_data_prep true \
+    --skip_train true \
+    --inference_args "--nbest 100 --beam_search_mode topk" \
+    --stop_stage 12 \
+    --inference_config conf/decode_asr_beam40.yaml \
+    --inference_tag $inference_tag \
+    --inference_nj $nj &
+# std2006_dev, 96 jobs: [elapsed=1684s] %WER 10.83 [ 3716 / 34324, 643 ins, 1164 del, 1909 sub ]
+
