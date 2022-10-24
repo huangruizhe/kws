@@ -192,13 +192,16 @@ if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
     # merge jobs if there are too many job ids
     # https://www.baeldung.com/linux/round-divided-number
 
-    get_nbest_func() {
+    merge_jobs_func() {
         nbest_dir=$1
         new_nj=$2
 
         nj=`cat $nbest_dir/num_jobs`
         mv $nbest_dir/nbest $nbest_dir/nbest_$nj
         mkdir $nbest_dir/nbest
+
+        mkdir $nbest_dir/1best
+        cp $espnet_decode_dir/{score,text,token,token_int} $nbest_dir/1best/.
 
         for job_id in `seq 1 $nj`; do 
             # new_job_id=$(( 4 / 3 ))
@@ -226,7 +229,7 @@ if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
             log "Done, but line numbers does not match: $lc1 vs. $lc2"
         fi
     }
-    get_nbest_func $nbest_dir 32
+    merge_jobs_func $nbest_dir 32
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then

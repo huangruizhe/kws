@@ -1057,14 +1057,15 @@ debug_mode=
 temperature=0.6
 temperature=1.0
 temperature=1.5
-inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_stochastic${temperature}"
+mode=stochastic  # mode=interpolation
+inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_${mode}${temperature}"
 nj=64
 bash run.sh \
     --download_model espnet/roshansh_asr_base_sp_conformer_swbd \
     --test_sets $data \
     --skip_data_prep true \
     --skip_train true \
-    --inference_args "--nbest 100 --beam_search_mode stochastic --temperature $temperature $debug_mode" \
+    --inference_args "--nbest 100 --beam_search_mode ${mode} --temperature $temperature $debug_mode" \
     --stop_stage 12 \
     --inference_config conf/decode_asr_beam40.yaml \
     --inference_tag $inference_tag \
@@ -1073,7 +1074,7 @@ bash run.sh \
 # std2006_dev T=1.0: %WER 11.46 [ 3934 / 34324, 654 ins, 1365 del, 1915 sub ]
 
 data=std2006_dev_small
-mode=standard  # topk
+mode=standard  # mode=topk
 inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_$mode"
 bash run.sh \
     --download_model espnet/roshansh_asr_base_sp_conformer_swbd \

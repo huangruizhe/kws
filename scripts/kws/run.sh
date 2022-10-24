@@ -139,6 +139,7 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/make_index.sh \
  --lats_dir $lats_dir \
  --kws_data_dir $kws_data_dir \
  --frame_subsampling_factor 1 \
+ --skip_optimization true \
  --stage 0
   
 # stage 3 4

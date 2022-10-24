@@ -10,6 +10,7 @@
 
 ref=
 nbest_dir=
+lats_dir=
 nsize=
 
 cmd=run.pl
@@ -32,6 +33,7 @@ log() {
 log "------------------ Parameters ------------------"
 log ref: $ref
 log nbest_dir: $nbest_dir
+log lats_dir: $lats_dir
 log nsize: $nsize
 log nj: $nj
 log "------------------------------------------------"
@@ -107,4 +109,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --per_utt ${nbest_dir}/temp/'*'/scoring_kaldi/wer_details/per_utt \
         --n $nsize \
         --nbest ${nbest_dir}/nbest/'*'/nbest.txt
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    if [ -f $lats_dir//kws_indices/kws_results/results ]; then
+        log "Stage 3: Length of the putative hitlist"
+        wc wc $lats_dir//kws_indices/kws_results/results
+    fi
 fi
