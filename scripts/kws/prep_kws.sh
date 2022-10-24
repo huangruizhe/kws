@@ -71,7 +71,8 @@ if [ $stage -le 1 ] ; then
   cp $lang/words.txt $kws_data_dir/words.txt
   # add new words to ensure the hitlist contain these words!
   cat <(awk '{$1=""}1' $keywords | tr ' ' '\n' | sort | uniq) <(awk '{print $1;}' $lang/words.txt) | \
-    sort -u | comm -23 - <(awk '{print $1;}' $lang/words.txt | sort -u) \
+    sort -u | comm -23 - <(awk '{print $1;}' $lang/words.txt | sort -u) | \
+    sed '/^[[:space:]]*$/d' \
   > $kws_data_dir/keywords.newwords.txt
   word_id=`tail -n1 $lang/words.txt | awk '{print $2;}'`
   word_id=$(($word_id+1))
