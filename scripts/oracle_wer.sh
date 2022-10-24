@@ -114,6 +114,6 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ -f $lats_dir//kws_indices/kws_results/results ]; then
         log "Stage 3: Length of the putative hitlist"
-        wc wc $lats_dir//kws_indices/kws_results/results
+        wc $lats_dir//kws_indices/kws_results/results
     fi
 fi

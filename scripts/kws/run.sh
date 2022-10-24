@@ -184,7 +184,8 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/oracle_wer.sh \
   --ref /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt \
   --nbest_dir $nbest_dir \
   --nsize $nsize  \
-  --stage 2
+  --lats_dir $lats_dir # \
+  # --stage 2
 
 ################################################
 # analysis

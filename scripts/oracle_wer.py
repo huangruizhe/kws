@@ -124,7 +124,7 @@ def set_of_words(opts, apply_filter=False):
     for uid, txt in uid_text.items():
         txt = " ".join(txt)
         if uid not in uid_words:
-            set_of_words_stats[uid] = (None, None)
+            set_of_words_stats[uid] = (None, None, None, None)
         else:
             if apply_filter:
                 txt = wer_output_filter(txt)
@@ -134,7 +134,7 @@ def set_of_words(opts, apply_filter=False):
             overlap = txt.intersection(nbest)
             precision = None if len(nbest) == 0 else len(overlap) / len(nbest)
             recall = None if len(txt) == 0 else len(overlap) / len(txt)
-            set_of_words_stats[uid] = (precision, recall)
+            set_of_words_stats[uid] = (precision, recall, txt, nbest)
     return set_of_words_stats
 
 
@@ -238,6 +238,16 @@ def get_precision_recall(opts):
     logging.info(f"len(precisions) = {len(precisions)}, len(recalls) = {len(recalls)}")
     logging.info(f"precision: mean={statistics.mean(precisions)}, mode={statistics.mode(precisions)}, var={statistics.variance(precisions)}, min={min(precisions)}, max={max(precisions)}")
     logging.info(f"recall: mean={statistics.mean(recalls)}, mode={statistics.mode(recalls)}, var={statistics.variance(recalls)}, min={min(recalls)}, max={max(recalls)}")
+    
+    unique_words_ref = set()
+    unique_words_nbest = set()
+    for uid, stat in sow.items(): 
+        if stat[2] is not None:
+            unique_words_ref.update(stat[2])
+        if stat[3] is not None:
+            unique_words_nbest.update(stat[3])
+    logging.info(f"#unique words in ref:   {len(unique_words_ref)}")
+    logging.info(f"#unique words in nbest: {len(unique_words_nbest)}")
 
 
 def convert_kaldi_nbest(opts):
