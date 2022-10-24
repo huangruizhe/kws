@@ -59,6 +59,30 @@ done
 scp -r rhuang@login.clsp.jhu.edu:/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/test/ /home/hltcoe/rhuang/kws_exp/shay/s5c
 
 
-d2=
-d1=/export/fs04/a12/rhuang/kws/kws/$d2
+for f in cmd.sh conf data exp path.sh run*.sh steps utils; do
+    d2=$f
+    d1=/export/fs04/a12/rhuang/kws/kws/$d2
+    scp rhuang@login.clsp.jhu.edu:$d1 $d2
+done
+
+scp -r rhuang@login.clsp.jhu.edu:/export/fs04/a12/rhuang/kaldi_ruizhe/kaldi/egs/std2006/s5/local /export/fs04/a12/rhuang/kws/kws/.
+
+cd /home/hltcoe/rhuang/espnet/egs2/swbd/asr1
+mkdir refs
+for data in eval2000 std2006_dev std2006_eval callhome_dev callhome_eval; do
+    d1=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt
+    d2=refs/$data.test_filt.txt
+    scp rhuang@login.clsp.jhu.edu:$d1 $d2
+done
+
+for data in eval2000 std2006_dev std2006_eval callhome_dev callhome_eval; do
+    d1=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/data/$data
+    d2=/home/hltcoe/rhuang/espnet/egs2/swbd/asr1/data/.
+    scp -r rhuang@login.clsp.jhu.edu:$d1 $d2
+done
+
+d1=/export/fs04/a12/rhuang/kaldi_ruizhe/kaldi/egs/std2006/s5/local/score_kaldi_light.sh
+d2=/home/hltcoe/rhuang/espnet/egs2/swbd/asr1/local/.
 scp -r rhuang@login.clsp.jhu.edu:$d1 $d2
+
+scp -r rhuang@login.clsp.jhu.edu:/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/local/wer_output_filter

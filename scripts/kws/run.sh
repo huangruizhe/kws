@@ -132,7 +132,8 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/make_index.sh \
  --kws_data_dir $kws_data_dir \
  --frame_subsampling_factor 1 \
  --stage 0
-  
+# --cmd queue.pl --skip_optimization true
+
 # stage 3 4
 cd $kaldi_path
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/search.sh \
