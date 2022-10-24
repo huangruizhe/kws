@@ -69,6 +69,16 @@ if [ $stage -le 1 ] ; then
   cat $data_dir/wav.scp | awk 'BEGIN{i=1}; {print $1, i; i+=1;}' > $kws_data_dir/wav.map
 
   cp $lang/words.txt $kws_data_dir/words.txt
+  # add new words to ensure the hitlist contain these words!
+  cat <(awk '{$1=""}1' $keywords | tr ' ' '\n' | sort | uniq) <(awk '{print $1;}' $lang/words.txt) | \
+    sort -u | comm -23 - <(awk '{print $1;}' $lang/words.txt | sort -u) \
+  > $kws_data_dir/keywords.newwords.txt
+  word_id=`tail -n1 $lang/words.txt | awk '{print $2;}'`
+  word_id=$(($word_id+1))
+  cat $kws_data_dir/keywords.newwords.txt | \
+    awk -v word_id="$word_id" '{print $0 " " word_id; word_id += 1;}' >> $kws_data_dir/words.txt
+  wc $lang/words.txt $kws_data_dir/words.txt
+
   cp $keywords $kws_data_dir/keywords.txt
   map_oov=`awk 'BEGIN{a=0}{if ($2>0+a) a=$2} END{print a+10000}' $kws_data_dir/words.txt`
   cat $kws_data_dir/keywords.txt | \
@@ -95,6 +105,69 @@ fi
 
 if [ $stage -le 2 ] ; then
   ## this step generates the file hitlist
+
+  ## Ruizhe: we need to generate a new lang to contain those new words in the kw list
+  # g2p_exp=/export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/meta_dexp/1155system/exp/g2p/
+  # mkdir -p $kws_data_dir/temp
+  # # cp $lang/{words.txt,phones.txt} $kws_data_dir/temp/.
+  # # cp data/local/dict_nosp/lexicon{,p}.txt $kws_data_dir/temp/.  # TODO: may change
+  # prev_lexicon=data/local/dict_nosp/lexiconp.txt
+
+  # get_lexicon () {
+  #     _words=$1
+  #     _lexiconp=$2
+  #     _wdir=$3
+  #     _g2p=$4
+      
+  #     # echo "words:" $_words
+  #     # echo "lexiconp:" $_lexiconp
+  #     # echo "wdir:" $_wdir
+
+  #     mkdir $_wdir/temp_lex
+
+  #     # words that need to use g2p to generate pronuncation
+  #     comm -23 \
+  #       <(cat $_words | sort -u) \
+  #       <(cat $lexiconp | awk '{print $1}' | sort -u) \
+  #     > $_wdir/temp_lex/words_g2p.txt
+
+  #     # words that have entries in lexicon
+  #     comm -12 \
+  #       <(cat $_words | sort -u) \
+  #       <(cat $lexiconp | awk '{print $1}' | sort -u) \
+  #     > $_wdir/temp_lex/words_lexicon.txt
+
+  #     wc $_wdir/temp_lex/words_g2p.txt $_wdir/temp_lex/words_lexicon.txt
+  #     wc $_words
+
+  #     # pronunciation from g2p
+  #     # _g2p=/export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/meta_dexp/1155system/exp/g2p/
+  #     _g2p_nbest=3
+  #     _g2p_mass=0.95
+  #     _script=/export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/local/apply_g2p.sh
+  #     $_script --nj 6 --cmd run.pl --var-counts $_g2p_nbest --var-mass $_g2p_mass \
+  #       <(cat $_wdir/temp_lex/words_g2p.txt) $_g2p $_wdir/temp_lex/words_g2p
+
+  #     # pronunciation from lexicon
+  #     join -j 1 <(sort $_wdir/temp_lex/words_lexicon.txt) <(sort $_lexiconp) > $_wdir/temp_lex/words_lexicon.lex
+
+  #     # merge the two lexicons
+  #     cat $_wdir/temp_lex/words_lexicon.lex $_wdir/temp_lex/words_g2p/lexicon.lex \
+  #       | tr '[:upper:]' '[:lower:]' > $_wdir/temp_lex/lexicon.txt
+  #     wc $_words $_wdir/temp_lex/lexicon.txt
+
+  #     # echo "The result is in: $_wdir/temp_lex/lexicon.txt"
+  #     # echo "You can remove the temporary dir: rm -r $_wdir/temp_lex"
+  # }
+  # get_lexicon $kws_data_dir/words.txt $prev_lexicon $kws_data_dir $g2p_exp
+  # # mv $kws_data_dir/temp_lex/lexicon.txt $kws_data_dir/lexicon.txt
+
+  # mkdir -p $kws_data_dir/temp/dict_nosp
+  # cp data/local/dict_nosp/{nonsilence_phones.txt,optional_silence.txt,silence_phones.txt} $kws_data_dir/temp/dict_nosp/.
+  # cp $kws_data_dir/temp_lex/lexicon.txt $kws_data_dir/temp/dict_nosp/.
+
+  # utils/prepare_lang.sh $kws_data_dir/temp/dict_nosp/ \
+  #     "<unk>"  $kws_data_dir/temp/local/lang_nosp $kws_data_dir/temp/lang_nosp
 
   ## in many cases, when the reference hits are given, the followin two steps \
   ## are not needed

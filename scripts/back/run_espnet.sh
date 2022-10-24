@@ -1091,3 +1091,24 @@ bash run.sh \
 # check word distribution or # unique words in the nbest list
 nbest_file=/home/hltcoe/rhuang/kws-release/exp/std2006_dev_small/nbest_coe_stochastic1.5/nbest/40/nbest.txt
 cut -d" " -f3- $nbest_file | tr ' ' '\n' | sort | uniq -c | sort -nr | wc
+
+mode=constrained  # mode=standard
+wordlist_file=/home/hltcoe/rhuang/espnet/egs2/swbd/asr1/lm_vocab.txt
+inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_$mode"
+bash run.sh \
+    --download_model espnet/roshansh_asr_base_sp_conformer_swbd \
+    --test_sets $data \
+    --skip_data_prep true \
+    --skip_train true \
+    --inference_args "--nbest 100 --beam_search_mode $mode $debug_mode --wordlist_file $wordlist_file" \
+    --stop_stage 12 \
+    --inference_config conf/decode_asr_beam40.yaml \
+    --inference_tag $inference_tag \
+    --inference_nj $nj &
+
+# get nbest
+# check: steps/get_nbest_espnet.sh
+espnet_decode_dir=exp/espnet/roshansh_asr_base_sp_conformer_swbd/decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_$mode/$data/
+nbest_dir=temp
+# rm -r $nbest_dir
+get_nbest_func $nbest_dir $espnet_decode_dir
