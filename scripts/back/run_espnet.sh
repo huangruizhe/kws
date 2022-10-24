@@ -1049,15 +1049,22 @@ bash run.sh --download_model $pretrained \
 
 cd /home/hltcoe/rhuang/espnet/egs2/swbd/asr1
 
-temperature=0.1
+data=callhome_dev
+
+debug_mode="--log_level DEBUG"
+debug_mode=
+
+temperature=0.6
+temperature=1.0
+temperature=1.5
 inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_stochastic${temperature}"
-nj=40
+nj=64
 bash run.sh \
     --download_model espnet/roshansh_asr_base_sp_conformer_swbd \
     --test_sets $data \
     --skip_data_prep true \
     --skip_train true \
-    --inference_args "--nbest 100 --beam_search_mode stochastic --temperature $temperature" \
+    --inference_args "--nbest 100 --beam_search_mode stochastic --temperature $temperature $debug_mode" \
     --stop_stage 12 \
     --inference_config conf/decode_asr_beam40.yaml \
     --inference_tag $inference_tag \
@@ -1066,16 +1073,20 @@ bash run.sh \
 # std2006_dev T=1.0: %WER 11.46 [ 3934 / 34324, 654 ins, 1365 del, 1915 sub ]
 
 data=std2006_dev_small
-inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_topk"
+mode=standard  # topk
+inference_tag="decode_asr_beam40_nbest100_lm_lm_train_lm_bpe2000_valid.loss.best_asr_model_valid.acc.ave_$mode"
 bash run.sh \
     --download_model espnet/roshansh_asr_base_sp_conformer_swbd \
     --test_sets $data \
     --skip_data_prep true \
     --skip_train true \
-    --inference_args "--nbest 100 --beam_search_mode topk" \
+    --inference_args "--nbest 100 --beam_search_mode $mode $debug_mode" \
     --stop_stage 12 \
     --inference_config conf/decode_asr_beam40.yaml \
     --inference_tag $inference_tag \
     --inference_nj $nj &
 # std2006_dev, 96 jobs: [elapsed=1684s] %WER 10.83 [ 3716 / 34324, 643 ins, 1164 del, 1909 sub ]
 
+# check word distribution or # unique words in the nbest list
+nbest_file=/home/hltcoe/rhuang/kws-release/exp/std2006_dev_small/nbest_coe_stochastic1.5/nbest/40/nbest.txt
+cut -d" " -f3- $nbest_file | tr ' ' '\n' | sort | uniq -c | sort -nr | wc

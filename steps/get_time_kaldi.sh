@@ -52,12 +52,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     utils/fix_data_dir.sh data/${data}_1best${tag}
 
     # Why this is needed? Otherwise it seems there will be error in stage 1
-    split_data.sh data/${data}_1best${ag} $nj
+    split_data.sh data/${data}_1best${tag} $nj
 fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    echo "Stage 1: Create alignment exp/tri3_ali_1best${kaldi}_$data"
+    echo "Stage 1: Create alignment exp/tri3_ali_1best${tag}_$data"
     # steps/align_fmllr.sh --nj $nj --cmd "$cmd" \
     #     data/${data}_1best $lang exp/tri3 exp/tri3_ali_1best_$data
     steps/align_fmllr.sh --nj $nj --cmd "$cmd" --beam 40 --retry_beam 100 \

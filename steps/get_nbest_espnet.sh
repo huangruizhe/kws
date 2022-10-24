@@ -127,90 +127,106 @@ echo $espnet_decode_dir
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
-    mkdir -p $nbest_dir
-    find $espnet_decode_dir/logdir/ -maxdepth 1 -type d -regextype egrep -regex '.*/output.[0-9]+' | wc -l > $nbest_dir/num_jobs
-    nj=`cat $nbest_dir/num_jobs`
-    echo nj: $nj
+    get_nbest_func() {
+        nbest_dir=$1
+        espnet_decode_dir=$2
 
-    for job_id in `seq 1 $nj`; do 
-        nbest=`ls -d1 $espnet_decode_dir/logdir/output.${job_id}/*best_recog | wc -l`
-        mkdir -p $nbest_dir/nbest/${job_id}/
-        if [[ ! -f $nbest_dir/nbest/${job_id}/nbest.txt ]]; then
-            (
-                for ibest in `seq 1 $nbest`; do 
-                    [ -f $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/text ] \
-                    && join -j 1 \
-                        <(cut -d' ' -f1,2 $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/score) \
-                        $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/text
-                done;
-            ) | \
-            sort -s -k1,1 | \
-            awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
-            > $nbest_dir/nbest/${job_id}/nbest.txt
-            log "Done: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
-        else
-            log "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
-        fi
+        mkdir -p $nbest_dir
+        find $espnet_decode_dir/logdir/ -maxdepth 1 -type d -regextype egrep -regex '.*/output.[0-9]+' | wc -l > $nbest_dir/num_jobs
+        nj=`cat $nbest_dir/num_jobs`
 
-        if [[ ! -f $nbest_dir/nbest/${job_id}/token.txt ]]; then
-            (
-                for ibest in `seq 1 $nbest`; do 
-                    [ -f $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/token ] \
-                    && join -j 1 \
-                        <(cut -d' ' -f1,2 $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/score) \
-                        $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/token
-                done;
-            ) | \
-            sort -s -k1,1 | \
-            awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
-            > $nbest_dir/nbest/${job_id}/token.txt
-            log "Done: `wc $nbest_dir/nbest/${job_id}/token.txt`"
-        else
-            log "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/token.txt`"
-        fi
-    done    
+        echo ""       
+        log "nbest_dir: $nbest_dir"
+        log "espnet_decode_dir: $espnet_decode_dir"
+        log "nj: $nj"
 
-    for job_id in `seq 1 $nj`; do 
-        cut -d' ' -f1 $nbest_dir/nbest/$job_id/nbest.txt | sort -u > $nbest_dir/nbest/$job_id/utt
-        # wc -l $nbest_dir/temp/$job_id/utt
-    done
+        for job_id in `seq 1 $nj`; do 
+            nbest=`ls -d1 $espnet_decode_dir/logdir/output.${job_id}/*best_recog | wc -l`
+            mkdir -p $nbest_dir/nbest/${job_id}/
+            if [[ ! -f $nbest_dir/nbest/${job_id}/nbest.txt ]]; then
+                (
+                    for ibest in `seq 1 $nbest`; do 
+                        [ -f $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/text ] \
+                        && join -j 1 \
+                            <(cut -d' ' -f1,2 $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/score) \
+                            $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/text
+                    done;
+                ) | \
+                sort -s -k1,1 | \
+                awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
+                > $nbest_dir/nbest/${job_id}/nbest.txt
+                log "Done: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+            else
+                log "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/nbest.txt`"
+            fi
+
+            if [[ ! -f $nbest_dir/nbest/${job_id}/token.txt ]]; then
+                (
+                    for ibest in `seq 1 $nbest`; do 
+                        [ -f $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/token ] \
+                        && join -j 1 \
+                            <(cut -d' ' -f1,2 $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/score) \
+                            $espnet_decode_dir/logdir/output.${job_id}/${ibest}best_recog/token
+                    done;
+                ) | \
+                sort -s -k1,1 | \
+                awk 'BEGIN{FS=OFS=" ";}{ if(match($2, "tensor")) { $2=substr($2, 8, length($2)-8) }; print}' \
+                > $nbest_dir/nbest/${job_id}/token.txt
+                log "Done: `wc $nbest_dir/nbest/${job_id}/token.txt`"
+            else
+                log "File exists, skipping: `wc $nbest_dir/nbest/${job_id}/token.txt`"
+            fi
+        done    
+
+        for job_id in `seq 1 $nj`; do 
+            cut -d' ' -f1 $nbest_dir/nbest/$job_id/nbest.txt | sort -u > $nbest_dir/nbest/$job_id/utt
+            # wc -l $nbest_dir/temp/$job_id/utt
+        done
+    }
+
+    # rm -r $nbest_dir/nbest
+    get_nbest_func $nbest_dir $espnet_decode_dir
 fi
 
 if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
     # merge jobs if there are too many job ids
     # https://www.baeldung.com/linux/round-divided-number
 
-    new_nj=32
+    get_nbest_func() {
+        nbest_dir=$1
+        new_nj=$2
 
-    nj=`cat $nbest_dir/num_jobs`
-    mv $nbest_dir/nbest $nbest_dir/nbest_$nj
-    mkdir $nbest_dir/nbest
+        nj=`cat $nbest_dir/num_jobs`
+        mv $nbest_dir/nbest $nbest_dir/nbest_$nj
+        mkdir $nbest_dir/nbest
 
-    for job_id in `seq 1 $nj`; do 
-        # new_job_id=$(( 4 / 3 ))
-        new_job_id=$(( $job_id % $new_nj + 1))
-        mkdir -p $nbest_dir/nbest/${new_job_id}/
-        if [[ ! -f $nbest_dir/nbest_$nj/${job_id}/nbest.txt ]]; then
-            log "Warning: `File not exist: $nbest_dir/nbest/${job_id}/nbest.txt`"
+        for job_id in `seq 1 $nj`; do 
+            # new_job_id=$(( 4 / 3 ))
+            new_job_id=$(( $job_id % $new_nj + 1))
+            mkdir -p $nbest_dir/nbest/${new_job_id}/
+            if [[ ! -f $nbest_dir/nbest_$nj/${job_id}/nbest.txt ]]; then
+                log "Warning: `File not exist: $nbest_dir/nbest/${job_id}/nbest.txt`"
+            else
+                cat $nbest_dir/nbest_$nj/${job_id}/nbest.txt >> $nbest_dir/nbest/${new_job_id}/nbest.txt
+            fi
+
+            if [[ ! -f $nbest_dir/nbest_$nj/${job_id}/token.txt ]]; then
+                log "Warning: `File not exist: $nbest_dir/nbest_$nj/${job_id}/token.txt`"
+            else
+                cat $nbest_dir/nbest_$nj/${job_id}/token.txt >> $nbest_dir/nbest/${new_job_id}/token.txt
+            fi
+        done
+
+        lc1=`wc -l $nbest_dir/nbest_$nj/*/nbest.txt | tail -n1 | awk 'NF=1'`
+        lc2=`wc -l $nbest_dir/nbest/*/nbest.txt | tail -n1 | awk 'NF=1'`
+        if [ ${lc1} -eq ${lc2} ]; then
+            log "Done successfully."
+            echo $new_nj > $nbest_dir/num_jobs
         else
-            cat $nbest_dir/nbest_$nj/${job_id}/nbest.txt >> $nbest_dir/nbest/${new_job_id}/nbest.txt
+            log "Done, but line numbers does not match: $lc1 vs. $lc2"
         fi
-
-        if [[ ! -f $nbest_dir/nbest_$nj/${job_id}/token.txt ]]; then
-            log "Warning: `File not exist: $nbest_dir/nbest_$nj/${job_id}/token.txt`"
-        else
-            cat $nbest_dir/nbest_$nj/${job_id}/token.txt >> $nbest_dir/nbest/${new_job_id}/token.txt
-        fi
-    done
-
-    lc1=`wc -l $nbest_dir/nbest_$nj/*/nbest.txt | tail -n1 | awk 'NF=1'`
-    lc2=`wc -l $nbest_dir/nbest/*/nbest.txt | tail -n1 | awk 'NF=1'`
-    if [ ${lc1} -eq ${lc2} ]; then
-        log "Done successfully."
-        echo $new_nj > $nbest_dir/num_jobs
-    else
-        log "Done, but line numbers does not match: $lc1 vs. $lc2"
-    fi
+    }
+    get_nbest_func $nbest_dir 32
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
