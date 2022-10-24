@@ -102,6 +102,14 @@ bash /export/fs04/a12/rhuang/kws/kws-release/steps/get_time_kaldi.sh \
  --nbest_dir $nbest_dir \
  --tag "$tag"
 
+# get WER
+ref=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt
+datadir=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/data/${data}/
+tmp_decode=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/test/test
+hyp=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/${data}_1best${tag}/text
+wc $ref $hyp
+bash /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/local/score_kaldi_light.sh $ref $hyp $datadir $tmp_decode
+
 # get confidence scores for nbest
 # TODO
 
@@ -131,6 +139,7 @@ bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/make_index.sh \
  --lats_dir $lats_dir \
  --kws_data_dir $kws_data_dir \
  --frame_subsampling_factor 1 \
+ --skip_optimization true \
  --stage 0
 # --cmd queue.pl --skip_optimization true
 
