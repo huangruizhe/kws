@@ -174,7 +174,7 @@ if [ $stage -le 2 ] ; then
   ## are not needed
   ## we create the alignments of the data directory
   ## this is only so that we can obtain the hitlist
-  steps/align_fmllr.sh --nj 5 --cmd "$cmd" --beam 10 --retry_beam 60 \
+  steps/align_fmllr.sh --nj 5 --cmd "$cmd" --beam 60 --retry_beam 120 \
      $data_dir $lang exp/tri3 exp/tri3b_ali_$data
 
   msg=`grep "Done.*,\serrors\son" exp/tri3b_ali_$data/log/align_pass2.*.log |\
@@ -189,7 +189,9 @@ if [ $stage -le 2 ] ; then
     grep --color "Did not successfully decode file" exp/tri3b_ali_$data/log/align_pass2.*.log
   fi
 
-  ${kaldi_path}/local/kws/create_hitlist.sh $data_dir $lang ${kaldi_path}/data/local/lang \
+  # create_hitlist_script=${kaldi_path}/local/kws/create_hitlist.sh
+  create_hitlist_script="bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/create_hitlist.sh"
+  $create_hitlist_script $data_dir $lang ${kaldi_path}/data/local/lang \
     ${kaldi_path}/exp/tri3b_ali_$data $kws_data_dir
 fi
 

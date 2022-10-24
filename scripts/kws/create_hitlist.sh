@@ -58,14 +58,15 @@ if [ ! -f $lang/L_align.fst ]; then
   local/kws/make_L_align.sh $lang_tmp $lang $lang 2>&1 | tee $dir/log/L_align.log
 fi
 
-replace_unk_script=/export/fs04/a12/rhuang/kws/kws-release/scripts/kws/replace_unk.py
+replace_unk_script="python3 /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/replace_unk.py"
 
 $cmd $dir/log/ali_to_hitlist.log \
   set -e -o pipefail\; \
   ali-to-phones $dir/final.mdl "ark:gunzip -c $dir/ali.*.gz|" ark,t:- \| \
   phones-to-prons $lang/L_align.fst $wbegin $wend ark:- "ark,s:utils/sym2int.pl -f 2- --map-oov '$oov' $lang/words.txt <$data/text|" ark,t:- \| \
   prons-to-wordali ark:- "ark:ali-to-phones --write-lengths=true $dir/final.mdl 'ark:gunzip -c $dir/ali.*.gz|' ark,t:- |" ark,t:- \| \
-  tee $kws/ali.txt \| python $replace_unk_script --text $data/text --words $kws/words.txt \| \
+  tee $kws/ali.txt \| $replace_unk_script --text $data/text --words $kws/words.txt \| \
+  tee $kws/ali_nounk.txt \| \
   local/kws/generate_hitlist.pl $kws/keywords.int \|\
   utils/sym2int.pl -f 2 $kws/utt.map  \> $kws/hitlist
 

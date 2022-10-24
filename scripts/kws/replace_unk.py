@@ -52,6 +52,11 @@ def main(opts):
     utt2text = read_text(opts.text)
     id2word, word2id = read_words(opts.words)
     
+    unk_id = word2id[opts.unk]
+    logging.info(f"unk_id={unk_id}")
+
+    unk_replace_count = 0
+    unk_noreplace_count = 0
     for line in sys.stdin:
         fields = line.strip().split(maxsplit = 1)
         uid = fields[0]
@@ -67,9 +72,19 @@ def main(opts):
             exit(1)
 
         new_ali = ""
-        for w_ref, w_ali in zip(sent, ali):
-            if w_ref == opts.unk:
-                ali_w_id = word2id[w_ref]
+        idx_sent = 0
+        for w_ali in ali:
+            if w_ali[0] == 0:
+                ali_w_id = 0
+            elif w_ali[0] == unk_id:
+                w_ref = sent[idx_sent]
+                idx_sent += 1
+                if w_ref in word2id:
+                    ali_w_id = word2id[w_ref]
+                    unk_replace_count += 1
+                else:
+                    ali_w_id = w_ali[0]
+                    unk_noreplace_count += 1
             else:
                 ali_w_id = w_ali[0]
             new_ali += f" {ali_w_id} {w_ali[1]} ;"
@@ -77,6 +92,8 @@ def main(opts):
             new_ali = new_ali[:-1]
         
         print(f"{uid} {new_ali}")
+
+    logging.info(f"Replaced {unk_replace_count} unks in the ali file, while {unk_noreplace_count} was kept.")
 
 
 if __name__ == '__main__':
