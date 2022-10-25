@@ -479,7 +479,7 @@ for decode_set in eval2000 $maybe_rt03; do
         $dir/decode_${decode_set}${decode_iter:+_$decode_iter}_sw1_tg_$tag || exit 1;
     if $has_fisher; then
         steps/lmrescore_const_arpa.sh --cmd "$decode_cmd" \
-          data/lang_sw1_{tg,fsh_fg} data/${decode_set}_hires \
+          $wdir/lang_sw1_{tg,fsh_fg} data/${decode_set}_hires \
           $dir/decode_${decode_set}${decode_iter:+_$decode_iter}_sw1_{tg,fsh_fg}_$tag || exit 1;
     fi
     ) || touch $dir/.error &
@@ -489,8 +489,45 @@ if [ -f $dir/.error ]; then
   echo "$0: something went wrong in decoding"
 fi
 
-for decode_dir in decode_eval2000_sw1_{tg,fsh_fg}_$tag/; do
+data=
+for decode_dir in decode_${data}_sw1_{tg,fsh_fg}_$tag/; do
     echo $decode_dir
-    local/score_kaldi_wer.sh data/eval2000_hires $graph_dir $dir/decode_eval2000_sw1_tg_$tag/
+    local/score_kaldi_wer.sh data/${data}_hires $graph_dir $dir/$decode_dir
+    cat $dir/$decode_dir/scoring_kaldi/best_wer
 done
 
+
+######### RNNLM #########
+# /export/fs04/a12/rhuang/kws/kws/run.sh
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+  echo ============================================================================
+  echo "              RNNLM"
+  echo ============================================================================
+  
+  # https://github.com/kaldi-asr/kaldi/blob/master/egs/swbd/s5c/local/rnnlm/run_tdnn_lstm.sh
+
+  cp local/rnnlm/run_tdnn_lstm.sh local/rnnlm/run_tdnn_lstm_20221025.sh
+  vi local/rnnlm/run_tdnn_lstm_20221025.sh
+
+  bash local/rnnlm/run_tdnn_lstm_20221025.sh
+  # vi exp/rnnlm_lstm_1e/report.txt
+
+  for decode_set in eval2000 rt03; do
+  # for decode_set in std2006_dev std2006_eval; do
+  # for decode_set in callhome_train callhome_dev callhome_eval; do
+    decode_dirs="exp/chain/tdnn7r_sp/decode_${decode_set}_sw1_fsh_fg exp/chain/tdnn_lstm1n_sp/decode_${decode_set}_sw1_fsh_fg"
+    for decode_dir in $decode_dirs; do
+      # ...
+    done
+  done
+
+  # lattice rescoring with rnnlm
+  # you need to go inside the script local/rnnlm/run_tdnn_lstm.sh to checkout which dataset you wanna decode/rescore
+  bash local/rnnlm/run_tdnn_lstm.sh --stage 4
+  bash local/rnnlm/run_tdnn_lstm.sh --stage 4 --ac_model_dir exp/chain/tdnn7r_sp
+  bash local/rnnlm/run_tdnn_lstm.sh --stage 4 --ac_model_dir exp/chain/tdnn7r_sp --run_nbest_rescore false
+  
+  # nbest rescoring with rnnlm
+  bash local/rnnlm/run_tdnn_lstm.sh --stage 5
+fi
