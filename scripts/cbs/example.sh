@@ -37,6 +37,8 @@ f2=lm_vocab.txt
 join -t" " -j1 <(sort -k1,1 $f1) <(sort -k1,1 $f2) -a1 > a.txt
 cat a.txt | awk "NF<3"
 
+# 123 words are not in the lm_vocab
+
 ####################################
 # Analysis
 
