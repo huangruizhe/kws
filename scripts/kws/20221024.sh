@@ -212,7 +212,7 @@ kaldi_lm_vocab=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/lm_vocab_kaldi.txt  
 espnet_lm_text=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/data/lm_train.txt
 espnet_lm_vocab=/export/fs04/a12/rhuang/espnet/egs2/swbd/asr1/lm_vocab.txt  # 66k
 
-get_lexicon () {
+get_lexicon_for_new_words () {
     _words=$1
     _lexiconp=$2
     _wdir=$3
@@ -230,49 +230,261 @@ get_lexicon () {
       <(cat $lexiconp | awk '{print $1}' | sort -u) \
     > $_wdir/temp_lex/words_g2p.txt
 
-    # words that have entries in lexicon
-    comm -12 \
-      <(cat $_words | awk '{print $1}' | sort -u) \
-      <(cat $lexiconp | awk '{print $1}' | sort -u) \
-    > $_wdir/temp_lex/words_lexicon.txt
-
-    wc $_wdir/temp_lex/words_g2p.txt $_wdir/temp_lex/words_lexicon.txt
-    wc $_words
+    wc $_wdir/temp_lex/words_g2p.txt
 
     # pronunciation from g2p
     # _g2p=/export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/meta_dexp/1155system/exp/g2p/
     _g2p_nbest=3
     _g2p_mass=0.95
     _script=/export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/local/apply_g2p.sh
-    $_script --nj 6 --cmd run.pl --var-counts $_g2p_nbest --var-mass $_g2p_mass \
+    $_script --nj 16 --cmd queue.pl --var-counts $_g2p_nbest --var-mass $_g2p_mass \
       <(cat $_wdir/temp_lex/words_g2p.txt) $_g2p $_wdir/temp_lex/words_g2p
 
-    # pronunciation from lexicon
-    join -j 1 <(sort -k1,1 $_wdir/temp_lex/words_lexicon.txt) <(sort -k1,1 $_lexiconp) > $_wdir/temp_lex/words_lexicon.lex
-
-    # merge the two lexicons
-    cat $_wdir/temp_lex/words_lexicon.lex $_wdir/temp_lex/words_g2p/lexicon.lex \
-      | tr '[:upper:]' '[:lower:]' > $_wdir/temp_lex/lexicon.txt
-    wc $_words $_wdir/temp_lex/lexicon.txt
-
-    echo "The result is in: $_wdir/temp_lex/lexicon.txt"
-    echo "You can remove the temporary dir: rm -r $_wdir/temp_lex"
+    echo "The result is in: $_wdir/temp_lex/words_g2p/lexicon.lex"
 }
 lexicon=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/local/dict/lexicon.txt
 lexiconp=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/local/dict/lexiconp.txt
 g2p_exp=/export/fs04/a12/rhuang/kaldi/egs/opensat2020/s5/meta_dexp/1155system/exp/g2p/
-get_lexicon $espnet_lm_vocab $lexiconp $(pwd) $g2p_exp
+get_lexicon_for_new_words $espnet_lm_vocab $lexiconp $(pwd) $g2p_exp
 # mv $kws_data_dir/temp_lex/lexicon.txt $kws_data_dir/lexicon.txt
 
-# make lang
-wdir=temp_lang
+######## make lang ########
+wdir=$(pwd)/temp_lang
 mkdir -p $wdir/dict_nosp
-cp data/local/dict_nosp/{nonsilence_phones.txt,optional_silence.txt,silence_phones.txt} $wdir/dict_nosp/.
-cat $(pwd)/temp_lex/lexicon.txt | awk '{$2=""}1' | sort -u > $wdir/dict_nosp/lexicon.txt
+cp data/local/dict_nosp/{nonsilence_phones.txt,optional_silence.txt,silence_phones.txt,acronyms}* $wdir/dict_nosp/.
+# merge lexicons
+cat $lexiconp $_wdir/temp_lex/words_g2p/lexicon.lex \
+  | tr '[:upper:]' '[:lower:]' | awk '{$2=""}1' | sort -u \
+> $wdir/dict_nosp/lexicon.txt
+wc $wdir/dict_nosp/lexicon.txt
 
 utils/prepare_lang.sh $wdir/dict_nosp/ \
     "<unk>"  $wdir/local/lang_nosp $wdir/lang_nosp
 
+######## train lm ########
+if [ $stage -le 3 ]; then
+  fisher_dirs="/export/corpora3/LDC/LDC2004T19/fe_03_p1_tran/ /export/corpora3/LDC/LDC2005T19/fe_03_p2_tran/"
+  # local/swbd1_train_lms.sh data/local/train/text \
+  #   $wdir/dict_nosp/lexicon.txt $wdir/lm $fisher_dirs
 
+  cd /export/fs04/a12/rhuang/kaldi/egs/swbd/s5c
+  local/swbd1_train_lms.sh /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/local/train/text \
+    /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/temp_lang/dict_nosp/lexicon.txt \
+    /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/temp_lang/lm \
+    /export/corpora3/LDC/LDC2004T19/fe_03_p1_tran/ /export/corpora3/LDC/LDC2005T19/fe_03_p2_tran/
+  cd -
+fi
 
-# train lm
+has_fisher=true
+if [ $stage -le 4 ]; then
+  # Compiles G for swbd trigram LM
+  LM=$wdir/lm/sw1.o3g.kn.gz
+  srilm_opts="-subset -prune-lowprobs -unk -tolower -order 3"
+  utils/format_lm_sri.sh --srilm-opts "$srilm_opts" \
+                         $wdir/lang_nosp $LM $wdir/dict_nosp/lexicon.txt $wdir/lang_nosp_sw1_tg
+
+  # Compiles const G for swbd+fisher 4gram LM, if it exists.
+  LM=$wdir/lm/sw1_fsh.o4g.kn.gz
+  [ -f $LM ] || has_fisher=false
+  if $has_fisher; then
+    utils/build_const_arpa_lm.sh $LM $wdir/lang_nosp $wdir/lang_nosp_sw1_fsh_fg
+  fi
+fi
+
+# Do I need to retrain the acoustic models?
+# Try decoding with them!
+
+tag="ep1"
+stage=0
+. ./cmd.sh
+
+# TODO: need to re-map the *.scp files
+# feat-to-dim 'ark,s,cs:apply-cmvn --utt2spk=ark:data/train_30kshort/split30/1/utt2spk scp:data/train_30kshort/split30/1/cmvn.scp scp:data/train_30kshort/split30/1/feats.scp ark:- | add-deltas ark:- ark:- |' -
+# apply-cmvn --utt2spk=ark:data/train_30kshort/split30/1/utt2spk scp:data/train_30kshort/split30/1/cmvn.scp scp:data/train_30kshort/split30/1/feats.scp ark:-
+# add-deltas ark:- ark:-
+
+for i in $(seq 30); do
+  # f=data/train_30kshort/split30/$i/cmvn.scp
+  f=data/train_30kshort/split30/$i/feats.scp
+  cp $f $f.backup
+  sed -i 's/\/export\/b09\/ssegal\/kaldi\/egs\/swbd\/s5c\//\/export\/fs04\/a12\/rhuang\/kws\/kws_exp\/shay\/s5c\//g' $f
+done
+
+if [ $stage -le 9 ]; then
+  ## Starting basic training on MFCC features
+  steps/train_mono.sh --nj 30 --cmd "$train_cmd" \
+                      data/train_30kshort $wdir/lang_nosp exp/mono_$tag
+fi
+
+if [ $stage -le 10 ]; then
+  # steps/align_si.sh --nj 30 --cmd "$train_cmd" \
+  #                   data/train_100k_nodup data/lang_nosp exp/mono exp/mono_ali
+
+  # steps/train_deltas.sh --cmd "$train_cmd" \
+  #                       3200 30000 data/train_100k_nodup data/lang_nosp exp/mono_ali exp/tri1
+
+  (
+    graph_dir=$wdir/exp/tri1/graph_nosp_sw1_tg
+    $train_cmd $graph_dir/mkgraph.log \
+               utils/mkgraph.sh $wdir/lang_nosp_sw1_tg exp/tri1 $graph_dir
+    steps/decode_si.sh --nj 30 --cmd "$decode_cmd" --config conf/decode.config \
+                       $graph_dir data/eval2000 exp/tri1/decode_eval2000_nosp_sw1_tg_$tag
+  ) &
+fi
+
+if [ $stage -le 11 ]; then
+  steps/align_si.sh --nj 30 --cmd "$train_cmd" \
+                    data/train_100k_nodup data/lang_nosp exp/tri1 exp/tri1_ali
+
+  steps/train_deltas.sh --cmd "$train_cmd" \
+                        4000 70000 data/train_100k_nodup data/lang_nosp exp/tri1_ali exp/tri2
+
+  (
+    # The previous mkgraph might be writing to this file.  If the previous mkgraph
+    # is not running, you can remove this loop and this mkgraph will create it.
+    while [ ! -s data/lang_nosp_sw1_tg/tmp/CLG_3_1.fst ]; do sleep 60; done
+    sleep 20; # in case still writing.
+    graph_dir=exp/tri2/graph_nosp_sw1_tg
+    $train_cmd $graph_dir/mkgraph.log \
+               utils/mkgraph.sh data/lang_nosp_sw1_tg exp/tri2 $graph_dir
+    steps/decode.sh --nj 30 --cmd "$decode_cmd" --config conf/decode.config \
+                    $graph_dir data/eval2000 exp/tri2/decode_eval2000_nosp_sw1_tg
+  ) &
+fi
+
+if [ $stage -le 12 ]; then
+  # The 100k_nodup data is used in the nnet2 recipe.
+  steps/align_si.sh --nj 30 --cmd "$train_cmd" \
+                    data/train_100k_nodup data/lang_nosp exp/tri2 exp/tri2_ali_100k_nodup
+
+  # From now, we start using all of the data (except some duplicates of common
+  # utterances, which don't really contribute much).
+  steps/align_si.sh --nj 30 --cmd "$train_cmd" \
+                    data/train_nodup data/lang_nosp exp/tri2 exp/tri2_ali_nodup
+
+  # Do another iteration of LDA+MLLT training, on all the data.
+  steps/train_lda_mllt.sh --cmd "$train_cmd" \
+                          6000 140000 data/train_nodup data/lang_nosp exp/tri2_ali_nodup exp/tri3
+
+  (
+    graph_dir=exp/tri3/graph_nosp_sw1_tg
+    $train_cmd $graph_dir/mkgraph.log \
+               utils/mkgraph.sh data/lang_nosp_sw1_tg exp/tri3 $graph_dir
+    steps/decode.sh --nj 30 --cmd "$decode_cmd" --config conf/decode.config \
+                    $graph_dir data/eval2000 exp/tri3/decode_eval2000_nosp_sw1_tg
+  ) &
+fi
+
+cp exp/tri3/ali_prev/ali.* exp/tri3/.
+if [ $stage -le 13 ]; then
+  # Now we compute the pronunciation and silence probabilities from training data,
+  # and re-create the lang directory.
+  steps/get_prons.sh --cmd "$train_cmd" data/train_nodup $wdir/lang_nosp exp/tri3
+  utils/dict_dir_add_pronprobs.sh --max-normalize true \
+                                  $wdir/dict_nosp exp/tri3/pron_counts_nowb.txt exp/tri3/sil_counts_nowb.txt \
+                                  exp/tri3/pron_bigram_counts_nowb.txt $wdir/dict
+
+  utils/prepare_lang.sh $wdir/dict "<unk>" $wdir/local/lang $wdir/lang
+  LM=$wdir/lm/sw1.o3g.kn.gz
+  srilm_opts="-subset -prune-lowprobs -unk -tolower -order 3"
+  utils/format_lm_sri.sh --srilm-opts "$srilm_opts" \
+                         $wdir/lang $LM $wdir//dict/lexicon.txt $wdir/lang_sw1_tg
+  LM=$wdir/lm/sw1_fsh.o4g.kn.gz
+  if $has_fisher; then
+    utils/build_const_arpa_lm.sh $LM $wdir/lang $wdir/lang_sw1_fsh_fg
+  fi
+
+  (
+    graph_dir=$wdir/exp/tri3/graph_sw1_tg
+    $train_cmd $graph_dir/mkgraph.log \
+               utils/mkgraph.sh $wdir/lang_sw1_tg exp/tri3 $graph_dir
+    steps/decode.sh --nj 30 --cmd "$decode_cmd" --config conf/decode.config \
+                    $graph_dir data/eval2000 exp/tri3/decode_eval2000_sw1_tg_$tag
+  ) &
+fi
+
+# Not sure why I need to re-make MFCC features
+# Oh it is different directories:
+# /export/fs04/a12/rhuang/kws/kws/run.sh
+cd /export/fs04/a12/rhuang/kws/kws_exp/shay/s5c
+# cd /export/fs04/a12/rhuang/kws/kws  # exp/ in there will actually point to the one in shay/s5c
+
+mfccdir=mfcc_hires
+nj=50 # number of parallel jobs,
+
+for data in std2006_dev std2006_eval; do
+  if [ ! -f data/$data/wav.scp.16000backup ]; then
+    cp data/$data/wav.scp data/$data/wav.scp.16000backup
+  fi
+  sed -i 's/16000 dither/8000 dither/g' data/$data/wav.scp
+done
+
+# Create MFCCs for the eval set
+for data in eval2000 std2006_dev std2006_eval callhome_dev callhome_eval; do
+  utils/copy_data_dir.sh data/$data data/${data}_hires
+  steps/make_mfcc.sh --cmd "$train_cmd" --nj $nj --mfcc-config conf/mfcc_hires.conf \
+      data/${data}_hires exp/make_hires/${data} $mfccdir;
+  steps/compute_cmvn_stats.sh data/${data}_hires exp/make_hires/${data} $mfccdir;
+  utils/fix_data_dir.sh data/${data}_hires  # remove segments with problems
+done
+
+# for data in std2006_dev std2006_eval; do
+#   data=${data}_hires
+#   steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj $nj \
+#     data/${data} exp/nnet2_online/extractor exp/nnet2_online/ivectors_${data}_$tag
+# done
+
+######### Chain Model #########
+# https://github.com/kaldi-asr/kaldi/blob/master/egs/swbd/s5c/local/chain/tuning/run_tdnn_7r.sh
+# make graph again
+lang=data/lang_chain_2y_$tag
+if [ $stage -le 10 ]; then
+  # Create a version of the lang/ directory that has one state per phone in the
+  # topo file. [note, it really has two states.. the first one is only repeated
+  # once, the second one has zero or more repeats.]
+  rm -rf $lang
+  cp -r $wdir/lang $lang
+  silphonelist=$(cat $lang/phones/silence.csl)
+  nonsilphonelist=$(cat $lang/phones/nonsilence.csl)
+  # Use our special topology... note that later on may have to tune this
+  # topology.
+  steps/nnet3/chain/gen_topo.py $nonsilphonelist $silphonelist >$lang/topo
+fi
+
+suffix=_sp
+treedir=exp/chain/tri5_7d_tree$suffix
+
+dir=exp/chain/tdnn7r_sp/
+if [ $stage -le 14 ]; then
+  # Note: it might appear that this $lang directory is mismatched, and it is as
+  # far as the 'topo' is concerned, but this script doesn't read the 'topo' from
+  # the lang directory.
+  utils/mkgraph.sh --self-loop-scale 1.0 $wdir/lang_sw1_tg $dir $dir/graph_sw1_tg_$tag
+fi
+
+### tdnn
+dir=exp/chain/tdnn7r_sp/
+graph_dir=exp/chain/tdnn7r_sp/graph_sw1_tg_$tag/
+# if [ -e data/rt03 ]; then maybe_rt03=rt03; else maybe_rt03= ; fi
+iter_opts=
+decode_nj=50
+has_fisher=true
+rm $dir/.error 2>/dev/null || true
+for decode_set in eval2000 $maybe_rt03; do
+    (
+    steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
+        --nj $decode_nj --cmd "$decode_cmd" $iter_opts \
+        --online-ivector-dir exp/nnet3/ivectors_${decode_set} \
+        $graph_dir data/${decode_set}_hires \
+        $dir/decode_${decode_set}${decode_iter:+_$decode_iter}_sw1_tg_$tag || exit 1;
+    if $has_fisher; then
+        steps/lmrescore_const_arpa.sh --cmd "$decode_cmd" \
+          data/lang_sw1_{tg,fsh_fg} data/${decode_set}_hires \
+          $dir/decode_${decode_set}${decode_iter:+_$decode_iter}_sw1_{tg,fsh_fg}_$tag || exit 1;
+    fi
+    ) || touch $dir/.error &
+done
+wait
+if [ -f $dir/.error ]; then
+  echo "$0: something went wrong in decoding"
+fi
