@@ -9,6 +9,7 @@ keywords=/export/fs04/a12/rhuang/kws/kws/data0/std2006_dev/kws/keywords.std2006_
 create_catetories="true" 
 flen=0.01
 kws_data_dir=
+skip_ali=
 
 kaldi_path=/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/
 lang=${kaldi_path}/data/lang
@@ -80,7 +81,9 @@ if [ $stage -le 1 ] ; then
     awk -v word_id="$word_id" '{print $0 " " word_id; word_id += 1;}' >> $kws_data_dir/words.txt
   wc $lang/words.txt $kws_data_dir/words.txt
 
-  cp $keywords $kws_data_dir/keywords.txt
+  if ! [ "$keywords" -ef "$kws_data_dir/keywords.txt" ]; then # $1 and $2 are different files
+    cp $keywords $kws_data_dir/keywords.txt
+  fi
   map_oov=`awk 'BEGIN{a=0}{if ($2>0+a) a=$2} END{print a+10000}' $kws_data_dir/words.txt`
   cat $kws_data_dir/keywords.txt | \
     ${kaldi_path}/local/kws/keywords_to_indices.pl --map-oov $map_oov  $kws_data_dir/words.txt | \
@@ -174,8 +177,10 @@ if [ $stage -le 2 ] ; then
   ## are not needed
   ## we create the alignments of the data directory
   ## this is only so that we can obtain the hitlist
-  steps/align_fmllr.sh --nj 5 --cmd "$cmd" --beam 60 --retry_beam 120 \
-     $data_dir $lang exp/tri3 exp/tri3b_ali_$data
+  if [[ "$skip_ali" != "true" ]]; then
+    steps/align_fmllr.sh --nj 5 --cmd "$cmd" --beam 60 --retry_beam 120 \
+      $data_dir $lang exp/tri3 exp/tri3b_ali_$data
+  fi
 
   msg=`grep "Done.*,\serrors\son" exp/tri3b_ali_$data/log/align_pass2.*.log |\
     grep -v "Done.*,\serrors\son\s0" -`

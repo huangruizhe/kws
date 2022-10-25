@@ -17,6 +17,7 @@ import sys
 import os
 import gzip
 import pickle
+import re
 
 from tqdm import tqdm
 from jellyfish import jaro_distance
@@ -249,6 +250,10 @@ class Utterance:
                 # assuming the input (nbest file) to be of this format for each line:
                 # (uid, log-prob, sentence)
                 # In Kaldi, the "log-prob" can be positive, but it does not matter if we normalize the posterior for each sentence
+
+                # Filtering step:  # TODO: make it an option for cmd
+                line = re.sub('([^\s])-([^\s])', r'\1 \2', line)  # hyphen between words are replaced with space
+                line = re.sub('[.,!?:&]', ' ', line)
 
                 line = line.rstrip().split()
                 if len(line) == 0:

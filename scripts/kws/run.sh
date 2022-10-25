@@ -119,9 +119,12 @@ cd $kaldi_path
 bash /export/fs04/a12/rhuang/kws/kws-release/scripts/kws/prep_kws.sh \
   --data $data \
   --keywords $keywords \
-  --create_catetories "false" \
-  --kws_data_dir $kws_data_dir
+  --create_catetories "true" \
+  --kws_data_dir $kws_data_dir --skip_ali "true"
 cd -
+# NOTE (Important!):
+# If you wanna do prep_kws again after modifying text file, you may need do: rm -r data/$data/split5
+# otherwise, the change of text will not affect the alignment results!
 
 # get clats from nbest
 # export PYTHONPATH=$PYTHONPATH:/export/fs04/a12/rhuang/espnet/

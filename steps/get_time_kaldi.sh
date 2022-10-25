@@ -45,6 +45,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     
     grep -iF "error" ${nbest_dir}/log/get1best.*.log
 
+    [[ -d data/${data}_1best${tag} ]] && rm -r data/${data}_1best${tag}
     utils/copy_data_dir.sh data/$data data/${data}_1best${tag}
     cat ${nbest_dir}/nbest/*/1best.txt | sed '/^$/d' | sort -s -k 1,1 > data/${data}_1best${tag}/text
 

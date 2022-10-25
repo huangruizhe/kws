@@ -87,6 +87,7 @@ def main(opts):
                     unk_noreplace_count += 1
             else:
                 ali_w_id = w_ali[0]
+                idx_sent += 1
             new_ali += f" {ali_w_id} {w_ali[1]} ;"
         if new_ali.endswith(";"):
             new_ali = new_ali[:-1]

@@ -61,7 +61,7 @@ if [[ ${stage} == 3 ]]; then
             "ark,t:| sort -u | gzip -c > $kwsoutput/result.JOB.gz" \
             "ark,t:| sort -u | gzip -c > $kwsoutput/stats.JOB.gz" 
 
-    log "Done: $kwsoutput"
+    log "Done: $kwsoutput/results"
 fi
 
 if [[ ${stage} == 4 ]]; then
