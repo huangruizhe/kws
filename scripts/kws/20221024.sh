@@ -488,3 +488,9 @@ wait
 if [ -f $dir/.error ]; then
   echo "$0: something went wrong in decoding"
 fi
+
+for decode_dir in decode_eval2000_sw1_{tg,fsh_fg}_$tag/; do
+    echo $decode_dir
+    local/score_kaldi_wer.sh data/eval2000_hires $graph_dir $dir/decode_eval2000_sw1_tg_$tag/
+done
+
