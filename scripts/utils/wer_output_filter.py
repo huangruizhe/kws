@@ -2,6 +2,7 @@
 
 import re
 import sys
+import argparse
 
 
 filter_dict = dict()
@@ -76,7 +77,7 @@ def filter(text):
 
     # rewrite words to standardized form with the dict
     # (1) words starting with & are entity names
-    text = re.sub('[.,!?:&%#\*/]+', ' ', text)
+    text = re.sub('[.,!?:;&%#\*/]+', ' ', text)
     text = " ".join([filter_dict.get(word, word) for word in text.strip().split()])
 
     # words beginning or ending with { or }
@@ -138,23 +139,40 @@ def filter(text):
     return text.strip()
 
 
+def parse_opts():
+    parser = argparse.ArgumentParser(
+        description='Get collocations',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-if __name__ == '__main__':
+    parser.add_argument('--no-uid', action='store_true', default=False)
+
+    opts = parser.parse_args()
+    return opts
+
+
+def main(opts):
     for line in sys.stdin:
 
         line = line.strip()
         if len(line) == 0:
             continue
         
-        try:
-            utt, text = line.split(None, 1)
-        except:
-            print(line)
-            continue
+        if not opts.no_uid:
+            try:
+                utt, text = line.split(None, 1)
+            except:
+                print(line)
+                continue
 
-        text = filter(text)
-        print("{} {}".format(utt, text))
-    
+            text = filter(text)
+            print("{} {}".format(utt, text))
+        else:
+            text = filter(line)
+            print(text)
+
+if __name__ == '__main__':
+    opts = parse_opts()
+    main(opts)
 
 
 # grep "<" exp/chain/tdnn7r_sp/decode_eval2000_sw1_fsh_fg/score_sclite/score_10_0.0/eval2000_hires.ctm.filt | \
