@@ -33,38 +33,60 @@ log "$0 $*"
 
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    # Use this corpus for demonstration purpose
+
+    git clone git@github.com:christos-c/bible-corpus.git
+
+    python -c '''
+import xml.etree.ElementTree as ET
+import glob
+files = glob.glob(f"bible-corpus/bibles/*.xml")
+for f in files:
+  print(f)
+  root = ET.fromstring(open(f).read())
+  with open(f[:f.rfind(".")] + ".txt", "w", encoding="utf-8") as out:
+    for n in root.iter("seg"):
+      if n.text is None: continue
+      out.write(n.text.strip() + "\n")
+'''
+
+    ls bible-corpus/bibles/*.txt 
+fi
+
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "Stage 0: PMI-based Phrase mining (actually, lemmas) of ${order}-ngrams with frequency threshold=${freq_thres}"
 
-    cd /export/fs04/a12/rhuang/espnet/egs2/swbd/asr1
-    . ./path.sh
-    . ./cmd.sh
+    git clone git@github.com:huangruizhe/kws.git
+    cd kws
 
-    cd /export/fs04/a12/rhuang/kws/kws-release
-    ln -s /export/fs04/a12/rhuang/kaldi_latest/kaldi/egs/wsj/s5/utils .
-
-    # TODO: shall we use a large corpus coming from multiple transcript files?
-
-    data=
+    # TODO: shall we use a large corpus for robust PMI estimation?
 
     # This is the trascript file in the kaldi asr directory
-    text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/${data}/text"
+    text="<path-to-your-corpus>/bible-corpus/bibles/English.txt"
+    text="<path-to-your-corpus>/bible-corpus/bibles/Chinese.txt"
     workdir="workdir"
     order=2; freq_thres=1
     # order=3; freq_thres=2
 
     mkdir -p $workdir
 
-    cat $text | python scripts/utils/wer_output_filter.py > $workdir/${data}.text
-    wc $text $workdir/${data}.text
+    # You can do some text normalization for your language:
+    cat $text | python scripts/utils/wer_output_filter.py --no-uid > $workdir/cleaned.text
+    cat $workdir/cleaned.text | python scripts/query_gen_general/get_lemma.py > $workdir/normed.text
+    # The line numbers should be the same here:
+    wc $text $workdir/cleaned.text $workdir/normed.text
+ 
+    # text_input=$text
+    text_input=$workdir/normed.text
     
-    python scripts/query_gen/get_collocation.py \
-        -i $workdir/${data}.text \
+    python scripts/query_gen_general/get_collocation.py \
+        -i $text_input \
         -w $workdir \
         -n $order \
-        -d $data \
         -f ${freq_thres}
 
-    log "Done. Please check the output file above. You can make edits in it mannualy if needed."
+    log "Done. Please check the output file above. You can make edits/filtering in it mannualy if needed."
 
     # head -647 $workdir/lemma_candidates.2.thres1.txt >> $workdir/lemma_candidates.std2006_dev.2.thres1.txt
 
@@ -80,19 +102,13 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: TF-IDF-based unigram mining (actually, lemmas) of 1-ngrams"
 
-    # Choose one of the following:
-    # This is the trascript file in the kaldi asr directory
-    # text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train/text"
-    # text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/train_dev/text"
-    # text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_dev/text"
-    # text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/data/std2006_eval/text"
-    # text="/export/fs04/a12/rhuang/kws/kws_exp/shay/s5c/exp/chain/tdnn7r_sp/decode_${data}_sw1_fsh_fg_rnnlm_1e_0.45/scoring_kaldi/test_filt.txt"
-    text=$workdir/${data}.text
+    # text_input=$text
+    text_input=$workdir/normed.text
     workdir="workdir"
 
     mkdir -p $workdir
 
-    python scripts/query_gen/get_collocation.py \
+    python scripts/query_gen_general/get_collocation.py \
         -i $text \
         -w $workdir \
         -n 1
@@ -108,7 +124,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 3: Adding zero-occurence keywords"
 
-    text=$workdir/${data}.text
+    text_input=$workdir/normed.text
     workdir="workdir"
 
     # Assuming there is a list of candidate words
@@ -117,7 +133,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         /export/fs04/a12/rhuang/kws/kws/data0/std2006_eval/kws/keywords.std2006_eval.txt \
         > $workdir/keywords.NIST2006KWS.txt
 
-    python scripts/query_gen/check_occurence.py \
+    python scripts/query_gen_general/check_occurence.py \
         --text $text \
         --wordlist $workdir/keywords.NIST2006KWS.txt \
         --maxorder 3 \
@@ -126,26 +142,27 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 2: Generate keyword queries for ${order}-ngrams"
+    log "Stage 4: Generate keyword queries for ${order}-ngrams: un-normalize, apply heuristics and so on"
 
-    data=
+    text_input=$workdir/normed.text
     workdir="workdir"
+    text_orig=$workdir/cleaned.text
 
     # You may need to set the following mannually
-    text=$workdir/${data}.text
     order=1
-    dict="$workdir/lemma_candidates.$data.$order.txt.0.5"
+    dict="$workdir/lemma_candidates.$order.txt"
     order=2
-    dict="$workdir/lemma_candidates.$data.$order.thres1.txt.*.*"
+    dict="$workdir/lemma_candidates.$order.thres1.txt"
     order=3
-    dict="$workdir/lemma_candidates.$data.$order.thres2.txt"
+    dict="$workdir/lemma_candidates.$order.thres2.txt"
 
-    python scripts/query_gen/get_queries.py \
-        -i $text \
+    python scripts/query_gen_general/get_queries.py \
+        -i $text_input \
+        -r $text_orig \
         -d $dict \
         -w $workdir \
-        -n $order \
-        -s $data
+        -n $order 
+    # You should get the list of keywords of the specific order now
     
     # merge queries of different orders
     # then, sort by the number of columns
